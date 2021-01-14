@@ -12,7 +12,8 @@
 <body>
 <script th:inline="javascript">
     const APPLICATION_NAME = [[${application_name}]]
-    const USER_NAME = [[${user_lastname + " " + user_firstname}]]
+    const USER = [[${user}]]
+    const USER_NAME = (USER) ? USER.firstname + " " + USER.lastname : ""
 </script>
 
 <script th:src="@{/js/user.js}"></script>

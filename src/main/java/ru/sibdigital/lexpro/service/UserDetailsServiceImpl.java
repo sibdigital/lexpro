@@ -8,14 +8,12 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.sibdigital.lexpro.config.CurrentUser;
-import ru.sibdigital.lexpro.model.ClsRole;
 import ru.sibdigital.lexpro.model.ClsUser;
 import ru.sibdigital.lexpro.model.RegUserRole;
 import ru.sibdigital.lexpro.repository.ClsUserRepo;
 import ru.sibdigital.lexpro.repository.RegUserRoleRepo;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service

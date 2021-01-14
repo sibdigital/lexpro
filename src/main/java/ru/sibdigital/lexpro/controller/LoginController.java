@@ -1,16 +1,13 @@
 package ru.sibdigital.lexpro.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import ru.sibdigital.lexpro.config.ApplicationConstants;
 
+@Log4j2
 @Controller
-public class LoginController {
-
-    @Autowired
-    private ApplicationConstants applicationConstants;
+public class LoginController extends SuperController {
 
     @GetMapping("/login")
     public String login(Model model) {

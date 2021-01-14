@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+
 @Entity
 @Table(name = "reg_user_role", schema = "public")
 @AllArgsConstructor

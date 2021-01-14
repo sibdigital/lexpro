@@ -5,18 +5,17 @@
     <title th:utext="${application_name}"></title>
     <link type="text/css" rel="stylesheet" th:href="@{/libs/webix.min.css}">
     <link type="text/css" rel="stylesheet" th:href="@{/libs/all.min.css}">
-    <link type="text/css" rel="stylesheet" th:href="@{/css/admin/admin.css}">
     <script th:src="@{/libs/webix.min.js}"></script>
     <script th:src="@{/libs/routie.min.js}"></script>
     <script th:src="@{/libs/jquery-3.4.1.min.js}"></script>
     <script th:src="@{/libs/nicedit/nicEdit.js}"></script>
-    <script th:src="@{/js/editor/nicedit.js}"></script>
     <script th:src="@{/libs/ace/ace.js}"></script>
-    <script th:src="@{/js/editor/ace.js}"></script>
 </head>
 <body>
 <script th:inline="javascript">
-    const USER_NAME = [[${user_lastname + " " + user_firstname}]]
+    const APPLICATION_NAME = [[${application_name}]]
+    const USER = [[${user}]]
+    const USER_NAME = (USER) ? USER.firstname + " " + USER.lastname : ""
 </script>
 
 <script th:src="@{/js/admin.js}"></script>
