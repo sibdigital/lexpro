@@ -1,0 +1,7 @@
+.multiline{
+    line-height:20px !important;
+}
+
+.styleIcon .webix_icon:before{
+    color: #1CA1C1;
+}

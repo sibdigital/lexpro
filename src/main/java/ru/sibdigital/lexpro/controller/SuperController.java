@@ -7,6 +7,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import ru.sibdigital.lexpro.config.ApplicationConstants;
 import ru.sibdigital.lexpro.config.CurrentUser;
+import ru.sibdigital.lexpro.repository.DocRkkRepo;
+import ru.sibdigital.lexpro.service.RkkService;
 
 @Log4j2
 @Controller
@@ -14,6 +16,12 @@ public class SuperController {
 
     @Autowired
     protected ApplicationConstants applicationConstants;
+
+    @Autowired
+    protected RkkService rkkService;
+
+    @Autowired
+    protected DocRkkRepo docRkkRepo;
 
     protected CurrentUser getCurrentUser() {
         return (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -27,7 +35,7 @@ public class SuperController {
         model.addAttribute("application_name", applicationConstants.getApplicationName());
     }
 
-    protected boolean hasCurrentUserAuthority(CurrentUser currentUser, String authorityName) {
+    protected boolean hasCurrentUserGotAuthority(CurrentUser currentUser, String authorityName) {
         return currentUser
               .getAuthorities()
               .stream()

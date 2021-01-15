@@ -14,7 +14,7 @@ public class MainController extends SuperController {
     public String index() {
         CurrentUser currentUser = getCurrentUser();
 
-        if (hasCurrentUserAuthority(currentUser, "ROLE_ADMIN")) {
+        if (hasCurrentUserGotAuthority(currentUser, "ROLE_ADMIN")) {
             return "redirect:/admin";
         }
 
@@ -32,4 +32,5 @@ public class MainController extends SuperController {
         addGeneralModelAttributes(model);
         return "admin";
     }
+
 }

@@ -5,11 +5,10 @@
     <title th:utext="${application_name}"></title>
     <link type="text/css" rel="stylesheet" th:href="@{/libs/webix.min.css}">
     <link type="text/css" rel="stylesheet" th:href="@{/libs/all.min.css}">
+    <link type="text/css" rel="stylesheet" th:href="@{/css/rkk.css}">
     <script th:src="@{/libs/webix.min.js}"></script>
     <script th:src="@{/libs/routie.min.js}"></script>
     <script th:src="@{/libs/jquery-3.4.1.min.js}"></script>
-    <script th:src="@{/libs/nicedit/nicEdit.js}"></script>
-    <script th:src="@{/libs/ace/ace.js}"></script>
 </head>
 <body>
 <script th:inline="javascript">
@@ -17,7 +16,9 @@
     const USER = [[${user}]]
     const USER_NAME = (USER) ? USER.firstname + " " + USER.lastname : ""
 </script>
-
+<script th:src="@{/js/utils/general_functions.js}"></script>
 <script th:src="@{/js/admin.js}"></script>
+<script th:src="@{/js/rkk/rkk_list.js}"></script>
+<script th:src="@{/js/rkk/rkk_form.js}"></script>
 </body>
 </html>

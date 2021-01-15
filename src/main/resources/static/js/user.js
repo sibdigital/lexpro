@@ -1,7 +1,5 @@
 webix.i18n.setLocale("ru-RU");
 
-const dateFormat = webix.Date.dateToStr("%d.%m.%Y %H:%i:%s")
-
 webix.ready(function() {
     let layout = webix.ui({
         cols: [
