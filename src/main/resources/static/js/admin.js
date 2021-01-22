@@ -2,13 +2,13 @@ webix.i18n.setLocale("ru-RU");
 
 var sideBarData = [
     // Позже переименовать id
-    { id: "ID1", icon: "fas fa-globe",      value: 'Управление доступом, пользователями и ролевой моделью' },
-    { id: "ID2", icon: "fas fa-globe",      value: 'Ведение нормативно-справочной информации' },
-    { id: "Rkk", icon: "fas fa-file-alt",   value: 'РКК' },
-    { id: "ID4", icon: "fas fa-globe",      value: 'Согласование документов' },
-    { id: "ID5", icon: "fas fa-globe",      value: 'Хранение файлов' },
-    { id: "ID6", icon: "fas fa-globe",      value: 'Статистика и отчетность' },
-    { id: "ID7", icon: "fas fa-globe",      value: 'Публикация документов' },
+    // { id: "ID1", icon: "fas fa-globe",      value: 'Управление доступом, пользователями и ролевой моделью' },
+    // { id: "ID2", icon: "fas fa-globe",      value: 'Ведение нормативно-справочной информации' },
+    { id: "Rkk", icon: "fas fa-file-alt",   value: 'РКК', },
+    // { id: "ID4", icon: "fas fa-globe",      value: 'Согласование документов' },
+    // { id: "ID5", icon: "fas fa-globe",      value: 'Хранение файлов' },
+    // { id: "ID6", icon: "fas fa-globe",      value: 'Статистика и отчетность' },
+    // { id: "ID7", icon: "fas fa-globe",      value: 'Публикация документов' },
 ]
 
 function getView(id) {
@@ -36,6 +36,7 @@ const upperToolbar = {
                     template: "<img height='35px' width='35px' src = \"favicon.ico\">"
                 },
                 {
+                    id: 'labelLK',
                     view: 'label',
                     minWidth: 400,
                     label: '<span style="font-size: 1.0rem">Личный кабинет администратора</span>',
@@ -65,7 +66,6 @@ const sideBar = {
                         view
                     ]
                 }, $$('content'))
-
             }
         }
     }
