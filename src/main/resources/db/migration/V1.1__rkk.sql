@@ -82,4 +82,24 @@ CREATE TABLE if not exists reg_employee_user
             references cls_employee
 );
 
+create table if not exists reg_doc_rkk_file
+(
+    id                 serial                              not null
+        constraint reg_doc_rkk_file_pkey
+            primary key,
+    id_rkk         integer
+        constraint fk_doc_rkk
+            references doc_rkk,
+    is_deleted         boolean,
+    time_create        timestamp default CURRENT_TIMESTAMP not null,
+    attachment_path    text,
+    file_name          text,
+    original_file_name text,
+    file_extension     varchar(16),
+    hash               text,
+    file_size          integer
+);
+
+
+
 

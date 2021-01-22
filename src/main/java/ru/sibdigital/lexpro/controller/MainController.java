@@ -14,7 +14,10 @@ public class MainController extends SuperController {
     public String index() {
         CurrentUser currentUser = getCurrentUser();
 
-        if (hasCurrentUserGotAuthority(currentUser, "ROLE_ADMIN")) {
+//        if (hasCurrentUserGotAuthority(currentUser, "ROLE_ADMIN")) {
+//            return "redirect:/admin";
+//        }
+        if (hasCurrentUserGotRole(currentUser, "ADMIN")) {
             return "redirect:/admin";
         }
 

@@ -41,7 +41,7 @@ public class DocRkk implements Serializable {
 
     @OneToOne
     @JoinColumn(name = "id_responsible_employee", referencedColumnName = "id")
-    private ClsEmployee     employee;
+    private ClsEmployee     responsibleEmployee;
 
     @OneToOne
     @JoinColumn(name = "id_status", referencedColumnName = "id")
@@ -140,11 +140,11 @@ public class DocRkk implements Serializable {
         this.responsibleOrganization = responsibleOrganization;
     }
 
-    public ClsEmployee getEmployee() {
-        return employee;
+    public ClsEmployee getResponsibleEmployee() {
+        return responsibleEmployee;
     }
-    public void setEmployee(ClsEmployee employee) {
-        this.employee = employee;
+    public void setResponsibleEmployee(ClsEmployee responsibleEmployee) {
+        this.responsibleEmployee = responsibleEmployee;
     }
 
     public ClsRkkStatus getStatus() {
@@ -152,5 +152,30 @@ public class DocRkk implements Serializable {
     }
     public void setStatus(ClsRkkStatus status) {
         this.status = status;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DocRkk docRkk = (DocRkk) o;
+        return Objects.equals(id, docRkk.id) &&
+                Objects.equals(rkkNumber, docRkk.rkkNumber) &&
+                Objects.equals(npaName, docRkk.npaName) &&
+                Objects.equals(registrationDate, docRkk.registrationDate) &&
+                Objects.equals(introductionDate, docRkk.introductionDate) &&
+                Objects.equals(deadline, docRkk.deadline) &&
+                Objects.equals(sessionNumber, docRkk.sessionNumber) &&
+                Objects.equals(sessionDate, docRkk.sessionDate) &&
+                Objects.equals(includedInAgenta, docRkk.includedInAgenta) &&
+                Objects.equals(npaType, docRkk.npaType) &&
+                Objects.equals(responsibleOrganization, docRkk.responsibleOrganization) &&
+                Objects.equals(responsibleEmployee, docRkk.responsibleEmployee) &&
+                Objects.equals(status, docRkk.status);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, rkkNumber, npaName, registrationDate, introductionDate, deadline, sessionNumber, sessionDate, includedInAgenta, npaType, responsibleOrganization, responsibleEmployee, status);
     }
 }

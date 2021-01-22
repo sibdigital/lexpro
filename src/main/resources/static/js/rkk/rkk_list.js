@@ -1,34 +1,33 @@
 webix.i18n.setLocale("ru-RU");
 
 function changeRkkDatesFormat(obj) {
-    if (!(obj.registrationDate instanceof Date)) {
+    if ( obj.registrationDate != null && !(obj.registrationDate instanceof Date)) {
         obj.registrationDate = convertToDate(obj.registrationDate);
     }
 
-    if (!(obj.introductionDate instanceof Date)) {
+    if ( obj.introductionDate != null &&  !(obj.introductionDate instanceof Date)) {
         obj.introductionDate = convertToDate(obj.introductionDate);
     }
 
-    if (!(obj.deadline instanceof Date)) {
+    if ( obj.deadline != null && !(obj.deadline instanceof Date)) {
         obj.deadline = convertToDate(obj.deadline);
     }
 
-    if (!(obj.sessionDate instanceof Date)) {
+    if ( obj.sessionDate != null && !(obj.sessionDate instanceof Date)) {
         obj.sessionDate = convertToDate(obj.sessionDate);
     }
 }
 
-function getRkkDataById(id) {
-    return webix.ajax().sync().get('doc_rkk/' + id);
-}
+function openRkkTab(id) {
 
-function loadRkkById(id) {
-    var xhr = getRkkDataById(id);
-    var jsonResponse = JSON.parse(xhr.responseText);
+    let data = $$('rkk_table').getItem(id);
+    data.status.value = data.status.name;
+    data.npaType.value = data.npaType.name;
+    data.responsibleOrganization.value = data.responsibleOrganization.name;
+    data.responsibleEmployee.value = data.responsibleEmployee.name;
 
-    changeRkkDatesFormat(jsonResponse);
-
-    $$('rkkForm').parse(jsonResponse);
+    webix.ui(rkkForm, $$('rkkListId'));
+    $$('rkkForm').parse(data);
 }
 
 var includedInAgentaColumn = {
@@ -56,6 +55,34 @@ var rkkTableColumns = [
     { id: 'status',             header: 'Состояние',   template: '#status.name#', adjust: true},
 ]
 
+var pager = {
+    id: 'Pager',
+    view: 'pager',
+    height: 38,
+    size: 25,
+    group: 5,
+    template: '{common.first()}{common.prev()}{common.pages()}{common.next()}{common.last()}'
+}
+
+var btnAddRkk = {
+    id: 'btnAddRkk',
+    view: 'button',
+    css: 'webix_primary',
+    value: 'Добавить',
+    maxWidth: 300,
+    click: function () {
+        webix.ui(rkkForm, $$('rkkListId'));
+    }
+}
+
+var bottomPanel = {
+    cols: [
+        pager,
+        {},
+        btnAddRkk,
+    ]
+}
+
 var rkkTable = {
     id: 'rkk_table',
     view: 'datatable',
@@ -74,23 +101,23 @@ var rkkTable = {
         }
     },
     on: {
+        onBeforeLoad: function () {
+            this.showOverlay("Загружаю...");
+        },
+        onAfterLoad: function () {
+            this.hideOverlay();
+            if (!this.count()) {
+                this.showOverlay("Отсутствуют данные")
+            }
+        },
+        onLoadError: function () {
+            this.hideOverlay();
+        },
         onItemDblClick: function (id) {
-            item = this.getItem(id);
-            webix.ui(rkkForm, $$('rkkListId'));
-
-            loadRkkById(item.id);
+            openRkkTab(id);
         }
     },
     url: 'doc_rkks',
-}
-
-var pager = {
-    view: 'pager',
-    id: 'Pager',
-    height: 38,
-    size: 25,
-    group: 5,
-    template: '{common.first()}{common.prev()}{common.pages()}{common.next()}{common.last()}'
 }
 
 const rkkList = {
@@ -105,7 +132,7 @@ const rkkList = {
                 autoheight: true,
                 rows: [
                     rkkTable,
-                    pager]
+                    bottomPanel]
             }]
     }
 }

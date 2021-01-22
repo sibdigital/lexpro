@@ -61,6 +61,11 @@ public class ClsEmployee implements Serializable {
         this.patronymic = patronymic;
     }
 
+    public String getName() {
+        String name = this.getFirstname() + " " + this.getLastname() + (this.getPatronymic() != null ? " " + this.getPatronymic() : "");
+        return name;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
