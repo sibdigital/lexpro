@@ -6,6 +6,7 @@
     <link type="text/css" rel="stylesheet" th:href="@{/libs/webix.min.css}">
     <link type="text/css" rel="stylesheet" th:href="@{/libs/all.min.css}">
     <link type="text/css" rel="stylesheet" th:href="@{/css/rkk.css}">
+    <link type="text/css" rel="stylesheet" th:href="@{/css/general.css}">
     <script th:src="@{/libs/webix.min.js}"></script>
     <script th:src="@{/libs/routie.min.js}"></script>
     <script th:src="@{/libs/jquery-3.4.1.min.js}"></script>
@@ -15,8 +16,10 @@
     const APPLICATION_NAME = [[${application_name}]]
     const USER = [[${user}]]
     const USER_NAME = (USER) ? USER.firstname + " " + USER.lastname : ""
+    const PRIVILEGES = [[${privileges}]]
+    const ROLES = [[${roles}]]
 </script>
-<script th:src="@{/js/utils/general_functions.js}"></script>
+<script th:src="@{/js/utils/general.js}"></script>
 <script th:src="@{/js/admin.js}"></script>
 <script th:src="@{/js/rkk/rkk_list.js}"></script>
 <script th:src="@{/js/rkk/rkk_form.js}"></script>

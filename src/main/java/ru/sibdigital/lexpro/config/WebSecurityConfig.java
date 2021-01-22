@@ -34,8 +34,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http
                 .csrf().disable()
                 .authorizeRequests()
-                .antMatchers("/libs/**", "/css/**").permitAll()
-//                .antMatchers("/js/**").permitAll()
+                .antMatchers("/libs/**", "/css/**", "/images/**").permitAll()
+                .antMatchers("/js/**").permitAll()
                 .antMatchers("/login").permitAll()
                 .antMatchers("/admin").hasRole("ADMIN")
                 .antMatchers("/favicon.ico","/logo.png").permitAll()
@@ -49,6 +49,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .logout()
                 .logoutUrl("/logout")
-                .deleteCookies("JSESSIONID");
+                .deleteCookies("JSESSIONID").and()
+                .sessionManagement()
+                .invalidSessionUrl("/login");
     }
 }

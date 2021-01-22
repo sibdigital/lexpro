@@ -8,7 +8,11 @@ import org.springframework.ui.Model;
 import ru.sibdigital.lexpro.config.ApplicationConstants;
 import ru.sibdigital.lexpro.config.CurrentUser;
 import ru.sibdigital.lexpro.repository.DocRkkRepo;
+import ru.sibdigital.lexpro.repository.RegDocRkkFileRepo;
+import ru.sibdigital.lexpro.repository.RegRolePrivilegeRepo;
+import ru.sibdigital.lexpro.repository.RegUserRoleRepo;
 import ru.sibdigital.lexpro.service.RkkService;
+import ru.sibdigital.lexpro.service.UserDetailsServiceImpl;
 
 @Log4j2
 @Controller
@@ -23,6 +27,18 @@ public class SuperController {
     @Autowired
     protected DocRkkRepo docRkkRepo;
 
+    @Autowired
+    protected RegDocRkkFileRepo regDocRkkFileRepo;
+
+    @Autowired
+    protected RegUserRoleRepo regUserRoleRepo;
+
+    @Autowired
+    protected RegRolePrivilegeRepo regRolePrivilegeRepo;
+
+    @Autowired
+    protected UserDetailsServiceImpl userDetailsServiceImpl;
+
     protected CurrentUser getCurrentUser() {
         return (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
@@ -31,7 +47,9 @@ public class SuperController {
         CurrentUser currentUser = getCurrentUser();
 
         model.addAttribute("user", currentUser.getClsUser());
-        model.addAttribute("authorities", currentUser.getAuthorities()); // role: ADMIN, authority: ROLE_ADMIN
+//        model.addAttribute("authorities", currentUser.getAuthorities()); // role: ADMIN, authority: ROLE_ADMIN
+        model.addAttribute("roles", userDetailsServiceImpl.getUserRoleNames(currentUser.getClsUser()));
+        model.addAttribute("privileges", userDetailsServiceImpl.getUserPrivilegeNames(currentUser.getClsUser()));
         model.addAttribute("application_name", applicationConstants.getApplicationName());
     }
 
@@ -41,4 +59,12 @@ public class SuperController {
               .stream()
               .anyMatch(r -> r.getAuthority().equals(authorityName)); // role: ADMIN, authority: ROLE_ADMIN
     }
+
+    protected boolean hasCurrentUserGotRole(CurrentUser currentUser, String roleName) {
+        return regUserRoleRepo.findByUser(currentUser.getClsUser())
+                .stream()
+                .anyMatch(regUserRole -> regUserRole.getRole().getName().equals(roleName)); // role: ADMIN, authority: ROLE_ADMIN
+    }
+
+
 }
