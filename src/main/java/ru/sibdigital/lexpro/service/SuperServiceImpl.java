@@ -3,6 +3,8 @@ package ru.sibdigital.lexpro.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.sibdigital.lexpro.model.RegRolePrivilege;
+import ru.sibdigital.lexpro.model.RegUserRole;
 import ru.sibdigital.lexpro.repository.*;
 
 import java.text.SimpleDateFormat;
@@ -13,19 +15,31 @@ import java.util.Date;
 public class SuperServiceImpl implements SuperService{
 
     @Autowired
-    protected DocRkkRepo docRkkRepo;
+    DocRkkRepo docRkkRepo;
 
     @Autowired
-    protected ClsRkkStatusRepo clsRkkStatusRepo;
+    ClsRkkStatusRepo clsRkkStatusRepo;
 
     @Autowired
-    protected ClsNpaTypeRepo clsNpaTypeRepo;
+    ClsNpaTypeRepo clsNpaTypeRepo;
 
     @Autowired
-    protected ClsOrganizationRepo clsOrganizationRepo;
+    ClsOrganizationRepo clsOrganizationRepo;
 
     @Autowired
-    protected ClsEmployeeRepo clsEmployeeRepo;
+    ClsEmployeeRepo clsEmployeeRepo;
+
+    @Autowired
+    RegUserRoleRepo regUserRoleRepo;
+
+    @Autowired
+    RegRolePrivilegeRepo regRolePrivilegeRepo;
+
+    @Autowired
+    ClsUserRepo clsUserRepo;
+
+    @Autowired
+    RolePrivilegeService rolePrivilegeService;
 
     @Override
     public Date parseDateFromForm(String stringDate) {

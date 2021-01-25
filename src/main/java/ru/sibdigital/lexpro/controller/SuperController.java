@@ -7,11 +7,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import ru.sibdigital.lexpro.config.ApplicationConstants;
 import ru.sibdigital.lexpro.config.CurrentUser;
+import ru.sibdigital.lexpro.model.ClsUser;
 import ru.sibdigital.lexpro.repository.DocRkkRepo;
 import ru.sibdigital.lexpro.repository.RegDocRkkFileRepo;
 import ru.sibdigital.lexpro.repository.RegRolePrivilegeRepo;
 import ru.sibdigital.lexpro.repository.RegUserRoleRepo;
 import ru.sibdigital.lexpro.service.RkkService;
+import ru.sibdigital.lexpro.service.RolePrivilegeService;
 import ru.sibdigital.lexpro.service.UserDetailsServiceImpl;
 
 @Log4j2
@@ -19,25 +21,25 @@ import ru.sibdigital.lexpro.service.UserDetailsServiceImpl;
 public class SuperController {
 
     @Autowired
-    protected ApplicationConstants applicationConstants;
+    ApplicationConstants applicationConstants;
 
     @Autowired
-    protected RkkService rkkService;
+    RkkService rkkService;
 
     @Autowired
-    protected DocRkkRepo docRkkRepo;
+    DocRkkRepo docRkkRepo;
 
     @Autowired
-    protected RegDocRkkFileRepo regDocRkkFileRepo;
+    RegDocRkkFileRepo regDocRkkFileRepo;
 
     @Autowired
-    protected RegUserRoleRepo regUserRoleRepo;
+    RegUserRoleRepo regUserRoleRepo;
 
     @Autowired
-    protected RegRolePrivilegeRepo regRolePrivilegeRepo;
+    RegRolePrivilegeRepo regRolePrivilegeRepo;
 
     @Autowired
-    protected UserDetailsServiceImpl userDetailsServiceImpl;
+    RolePrivilegeService rolePrivilegeService;
 
     protected CurrentUser getCurrentUser() {
         return (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -45,11 +47,12 @@ public class SuperController {
 
     protected void addGeneralModelAttributes(Model model) {
         CurrentUser currentUser = getCurrentUser();
+        ClsUser user = currentUser.getClsUser();
 
-        model.addAttribute("user", currentUser.getClsUser());
+        model.addAttribute("user", user);
 //        model.addAttribute("authorities", currentUser.getAuthorities()); // role: ADMIN, authority: ROLE_ADMIN
-        model.addAttribute("roles", userDetailsServiceImpl.getUserRoleNames(currentUser.getClsUser()));
-        model.addAttribute("privileges", userDetailsServiceImpl.getUserPrivilegeNames(currentUser.getClsUser()));
+        model.addAttribute("roles", rolePrivilegeService.getUserRoleNames(user));
+        model.addAttribute("privileges", rolePrivilegeService.getUserPrivilegeNames(user));
         model.addAttribute("application_name", applicationConstants.getApplicationName());
     }
 
