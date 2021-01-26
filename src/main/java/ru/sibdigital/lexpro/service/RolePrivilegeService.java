@@ -1,5 +1,6 @@
 package ru.sibdigital.lexpro.service;
 
+import org.springframework.security.core.GrantedAuthority;
 import ru.sibdigital.lexpro.model.ClsPrivilege;
 import ru.sibdigital.lexpro.model.ClsRole;
 import ru.sibdigital.lexpro.model.ClsUser;
@@ -19,4 +20,5 @@ public interface RolePrivilegeService {
 
     List<String> getUserPrivilegeNames(ClsUser user);
 
+    List<GrantedAuthority> getPrivileges(ClsUser user);
 }

@@ -30,8 +30,9 @@ public class UserDetailsServiceImpl extends SuperServiceImpl implements UserDeta
             builder = User.withUsername(login);
 //            builder.password(passwordEncoder.encode(clsUser.getPassword()));
             builder.password(clsUser.getPassword());
-            String[] roleNames = rolePrivilegeService.getUserRoleNames(clsUser).toArray(String[]::new);
-            builder.roles(roleNames);
+//            String[] roleNames = rolePrivilegeService.getUserRoleNames(clsUser).toArray(String[]::new);
+//            builder.roles(roleNames);
+            builder.authorities(rolePrivilegeService.getPrivileges(clsUser));
 
         } else {
             throw new UsernameNotFoundException("User no found.");

@@ -15,6 +15,7 @@ import ru.sibdigital.lexpro.repository.RegUserRoleRepo;
 import ru.sibdigital.lexpro.service.RkkService;
 import ru.sibdigital.lexpro.service.RolePrivilegeService;
 import ru.sibdigital.lexpro.service.UserDetailsServiceImpl;
+import ru.sibdigital.lexpro.service.UserRoleService;
 
 @Log4j2
 @Controller
@@ -40,6 +41,9 @@ public class SuperController {
 
     @Autowired
     RolePrivilegeService rolePrivilegeService;
+
+    @Autowired
+    UserRoleService userRoleService;
 
     protected CurrentUser getCurrentUser() {
         return (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

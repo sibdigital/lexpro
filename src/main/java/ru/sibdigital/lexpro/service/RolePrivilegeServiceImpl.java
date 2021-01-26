@@ -1,10 +1,13 @@
 package ru.sibdigital.lexpro.service;
 
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import ru.sibdigital.lexpro.model.ClsPrivilege;
 import ru.sibdigital.lexpro.model.ClsRole;
 import ru.sibdigital.lexpro.model.ClsUser;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,6 +43,19 @@ public class RolePrivilegeServiceImpl extends SuperServiceImpl implements RolePr
         return privileges;
     }
 
+    public List<GrantedAuthority> getPrivileges(ClsUser user) {
+        List<ClsRole> userRoles = getUserRoles(user);
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        for (ClsRole role : userRoles) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
+        }
+
+        Set<ClsPrivilege> privileges = getRolesPrivileges(userRoles);
+        privileges.stream()
+                  .map(p -> new SimpleGrantedAuthority(p.getName()))
+                  .forEach(authorities::add);
+        return authorities;
+    }
 
     public List<String> getUserRoleNames(ClsUser clsUser) {
         List<ClsRole> userRoles = getUserRoles(clsUser);

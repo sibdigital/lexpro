@@ -14,6 +14,20 @@ import ru.sibdigital.lexpro.service.UserDetailsServiceImpl;
 @EnableWebSecurity()
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
+    private static String OPERATION_READ = "READ_";
+    private static String OPERATION_WRITE = "WRITE_"; //create + update
+    private static String OPERATION_DELETE = "DELETE_";
+
+    public static String RESOURCE_RKK = "RKK";
+
+    private static String constructPrivilege (String operation, String resource){
+        return operation + "_" + resource;
+    }
+
+    public static String read(String resource){
+        return constructPrivilege(OPERATION_READ, resource);
+    }
+
     @Bean
     public UserDetailsService userDetailsService() {
         return new UserDetailsServiceImpl();
@@ -38,6 +52,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/js/**").permitAll()
                 .antMatchers("/login").permitAll()
                 .antMatchers("/admin").hasRole("ADMIN")
+                .antMatchers("/doc_rkks").hasAuthority(OPERATION_READ + RESOURCE_RKK)
                 .antMatchers("/favicon.ico","/logo.png").permitAll()
                 .anyRequest().authenticated()
                 .and()
