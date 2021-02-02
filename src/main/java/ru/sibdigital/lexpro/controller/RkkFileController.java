@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-import ru.sibdigital.lexpro.model.ClsUser;
+import ru.sibdigital.lexpro.dto.KeyValue;
 import ru.sibdigital.lexpro.model.DocRkk;
-import ru.sibdigital.lexpro.model.RegDocRkkFile;
+import ru.sibdigital.lexpro.model.RegRkkFile;
 import ru.sibdigital.lexpro.service.FileService;
 
 import javax.servlet.http.HttpSession;
@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Log4j2
 @Controller
@@ -47,20 +48,20 @@ public class RkkFileController extends SuperController {
             DocRkk docRkk = (docRkkId == null) ?
                     null : docRkkRepo.findById(docRkkId).orElse(null);
 
-            RegDocRkkFile regDocRkkFile = construct(part, docRkk);
+            RegRkkFile regRkkFile = rkkFileService.construct(part, docRkk, uploadingDir);
 
-            if (regDocRkkFile != null){
-                if (regDocRkkFile.getId() == null) {
-                    regDocRkkFile = regDocRkkFileRepo.save(regDocRkkFile);
+            if (regRkkFile != null){
+                if (regRkkFile.getId() == null) {
+                    regRkkFile = regRkkFileRepo.save(regRkkFile);
                     responseEntity = ResponseEntity.ok()
                             .body("{\"cause\": \"Файл успешно загружен\"," +
                                     "\"status\": \"server\"," +
-                                    "\"sname\": \"" + regDocRkkFile.getOriginalFileName() + "\"}");
+                                    "\"sname\": \"" + regRkkFile.getOriginalFileName() + "\"}");
                 }else{
                     responseEntity = ResponseEntity.ok()
                             .body("{\"cause\": \"Вы уже загружали этот файл\"," +
                                     "\"status\": \"server\"," +
-                                    "\"sname\": \"" + regDocRkkFile.getOriginalFileName() + "\"}");
+                                    "\"sname\": \"" + regRkkFile.getOriginalFileName() + "\"}");
                 }
             }else{
                 responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -72,53 +73,37 @@ public class RkkFileController extends SuperController {
         return responseEntity;//ResponseEntity.ok().body(requestService.uploadFile(file));
     }
 
-    private RegDocRkkFile construct(MultipartFile part, DocRkk docRkk){
-        RegDocRkkFile rdrf = null;
-        try {
-
-            final String absolutePath = Paths.get(uploadingDir).toFile().getAbsolutePath();
-            final String filename = docRkk.getId().toString() + "_" + UUID.randomUUID();
-            final String originalFilename = part.getOriginalFilename();
-            String extension = FileService.getFileExtension(originalFilename);
-            File file = new File(String.format("%s/%s%s", absolutePath, filename, extension));
-            part.transferTo(file);
-
-            final String fileHash = FileService.getFileHash(file);
-            final long size = Files.size(file.toPath());
-
-            final List<RegDocRkkFile> files = regDocRkkFileRepo.findRegDocRkkFileByDocRkkAndHash(docRkk, fileHash);
-
-            if (!files.isEmpty()){
-                rdrf = files.get(0);
-            }else{
-                rdrf = RegDocRkkFile.builder()
-                        .attachmentPath(String.format("%s/%s", uploadingDir, filename))
-                        .fileName(filename)
-                        .originalFileName(originalFilename)
-                        .isDeleted(false)
-                        .fileExtension(extension)
-                        .fileSize(size)
-                        .hash(fileHash)
-                        .timeCreate(new Timestamp(System.currentTimeMillis()))
-                        .build();
-
-                if (docRkk != null){
-                    rdrf.setDocRkk(docRkk);
-                }
-            }
-
-        } catch (IOException ex){
-            log.error(String.format("file was not saved cause: %s", ex.getMessage()));
-        } catch (Exception ex) {
-            log.error(String.format("file was not saved cause: %s", ex.getMessage()));
-        }
-        return rdrf;
+    @GetMapping("/doc_rkk_files")
+    public @ResponseBody List<RegRkkFile> getRegDocFiles(@RequestParam(value = "docRkkId") Long docRkkId) {
+        DocRkk docRkk = docRkkRepo.findById(docRkkId).orElse(null);
+        return regRkkFileRepo.findRegRkkFileByDocRkk(docRkk);
     }
 
-    @GetMapping("/doc_rkk_files")
-    public @ResponseBody List<RegDocRkkFile> getRegDocFiles(@RequestParam(value = "docRkkId") Long docRkkId) {
-        DocRkk docRkk = docRkkRepo.findById(docRkkId).orElse(null);
-        return regDocRkkFileRepo.findRegDocRkkFileByDocRkk(docRkk);
+    @GetMapping("/participant_attachment_list")
+    public @ResponseBody
+    List<KeyValue> getParticipantListForRichselect() {
+        List<KeyValue> list = rkkService.getOrganizationList().stream()
+                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
+                .collect(Collectors.toList());
+        return list;
+    }
+
+    @GetMapping("/group_attachement_list")
+    public @ResponseBody
+    List<KeyValue> getGroupAttachmentListForRichselect() {
+        List<KeyValue> list = rkkFileService.getGroupAttachmentList().stream()
+                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
+                .collect(Collectors.toList());
+        return list;
+    }
+
+    @GetMapping("/type_attachement_list")
+    public @ResponseBody
+    List<KeyValue> getTypeAttachmentListForRichselect() {
+        List<KeyValue> list = rkkFileService.getTypeAttachmentList().stream()
+                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
+                .collect(Collectors.toList());
+        return list;
     }
 
 }

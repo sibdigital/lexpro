@@ -9,12 +9,12 @@ import ru.sibdigital.lexpro.config.ApplicationConstants;
 import ru.sibdigital.lexpro.config.CurrentUser;
 import ru.sibdigital.lexpro.model.ClsUser;
 import ru.sibdigital.lexpro.repository.DocRkkRepo;
-import ru.sibdigital.lexpro.repository.RegDocRkkFileRepo;
+import ru.sibdigital.lexpro.repository.RegRkkFileRepo;
 import ru.sibdigital.lexpro.repository.RegRolePrivilegeRepo;
 import ru.sibdigital.lexpro.repository.RegUserRoleRepo;
+import ru.sibdigital.lexpro.service.RkkFileService;
 import ru.sibdigital.lexpro.service.RkkService;
 import ru.sibdigital.lexpro.service.RolePrivilegeService;
-import ru.sibdigital.lexpro.service.UserDetailsServiceImpl;
 import ru.sibdigital.lexpro.service.UserRoleService;
 
 @Log4j2
@@ -31,7 +31,7 @@ public class SuperController {
     DocRkkRepo docRkkRepo;
 
     @Autowired
-    RegDocRkkFileRepo regDocRkkFileRepo;
+    RegRkkFileRepo regRkkFileRepo;
 
     @Autowired
     RegUserRoleRepo regUserRoleRepo;
@@ -44,6 +44,9 @@ public class SuperController {
 
     @Autowired
     UserRoleService userRoleService;
+
+    @Autowired
+    RkkFileService rkkFileService;
 
     protected CurrentUser getCurrentUser() {
         return (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

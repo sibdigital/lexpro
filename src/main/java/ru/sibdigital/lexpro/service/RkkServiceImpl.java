@@ -44,6 +44,12 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
     }
 
     @Override
+    public List<ClsSession> getSessionList() {
+        return StreamSupport.stream(clsSessionRepo.findAllByOrderByIdAsc().spliterator(), false)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public DocRkk saveDocRkk(DocRkkDto docRkkDto) {
         DocRkk docRkk = null;
         Long docRkkId = docRkkDto.getId();
@@ -62,16 +68,22 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
         DocRkk docRkk = DocRkk.builder()
                         .rkkNumber(docRkkDto.getRkkNumber())
                         .npaName(docRkkDto.getNpaName())
+                        .npaType(getNpaTypeById(docRkkDto.getNpaType()))
                         .registrationDate(parseDateFromForm(docRkkDto.getRegistrationDate()))
                         .introductionDate(parseDateFromForm(docRkkDto.getIntroductionDate()))
+                        .legislativeBasis(docRkkDto.getLegislativeBasis())
+                        .lawSubject(getOrganizationById(docRkkDto.getLawSubject()))
+                        .speaker(getEmployeeById(docRkkDto.getSpeaker()))
+                        .readyForSession(docRkkDto.getReadyForSession())
                         .deadline(parseDateFromForm(docRkkDto.getDeadline()))
-                        .sessionNumber(docRkkDto.getSessionNumber())
-                        .sessionDate(parseDateFromForm(docRkkDto.getSessionDate()))
-                        .includedInAgenta(docRkkDto.getIncludedInAgenta())
-                        .npaType(getNpaTypeById(docRkkDto.getNpaType()))
-                        .responsibleOrganization(getResponsibleOrganizationById(docRkkDto.getResponsibleOrganization()))
-                        .responsibleEmployee(getResponsibleEmployeeById(docRkkDto.getResponsibleEmployee()))
+                        .includedInAgenda(parseDateFromForm(docRkkDto.getIncludedInAgenda()))
+                        .responsibleOrganization(getOrganizationById(docRkkDto.getResponsibleOrganization()))
+                        .responsibleEmployee(getEmployeeById(docRkkDto.getResponsibleEmployee()))
                         .status(getRkkStatusById(docRkkDto.getStatus()))
+                        .session(getSessionById(docRkkDto.getSession()))
+                        .agendaNumber(docRkkDto.getAgendaNumber())
+                        .headSignature(parseDateFromForm(docRkkDto.getHeadSignature()))
+                        .publicationDate(parseDateFromForm(docRkkDto.getPublicationDate()))
                         .build();
         return docRkk;
     }
@@ -79,51 +91,66 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
     private DocRkk changeDocRkk(DocRkk docRkk, DocRkkDto docRkkDto) {
         docRkk.setRkkNumber(docRkkDto.getRkkNumber());
         docRkk.setNpaName(docRkkDto.getNpaName());
+        docRkk.setNpaType(getNpaTypeById(docRkkDto.getNpaType()));
         docRkk.setRegistrationDate(parseDateFromForm(docRkkDto.getRegistrationDate()));
         docRkk.setIntroductionDate(parseDateFromForm(docRkkDto.getIntroductionDate()));
+        docRkk.setLegislativeBasis(docRkkDto.getLegislativeBasis());
+        docRkk.setLawSubject(getOrganizationById(docRkkDto.getLawSubject()));
+        docRkk.setSpeaker(getEmployeeById(docRkkDto.getSpeaker()));
+        docRkk.setReadyForSession(docRkkDto.getReadyForSession());
         docRkk.setDeadline(parseDateFromForm(docRkkDto.getDeadline()));
-        docRkk.setSessionNumber(docRkkDto.getSessionNumber());
-        docRkk.setSessionDate(parseDateFromForm(docRkkDto.getSessionDate()));
-        docRkk.setIncludedInAgenta(docRkkDto.getIncludedInAgenta());
-        docRkk.setNpaType(getNpaTypeById(docRkkDto.getNpaType()));
-        docRkk.setResponsibleOrganization(getResponsibleOrganizationById(docRkkDto.getResponsibleOrganization()));
-        docRkk.setResponsibleEmployee(getResponsibleEmployeeById(docRkkDto.getResponsibleEmployee()));
+        docRkk.setIncludedInAgenda(parseDateFromForm(docRkkDto.getIncludedInAgenda()));
+        docRkk.setResponsibleOrganization(getOrganizationById(docRkkDto.getResponsibleOrganization()));
+        docRkk.setResponsibleEmployee(getEmployeeById(docRkkDto.getResponsibleEmployee()));
         docRkk.setStatus(getRkkStatusById(docRkkDto.getStatus()));
+        docRkk.setSession(getSessionById(docRkkDto.getSession()));
+        docRkk.setAgendaNumber(docRkkDto.getAgendaNumber());
+        docRkk.setHeadSignature(parseDateFromForm(docRkkDto.getHeadSignature()));
+        docRkk.setPublicationDate(parseDateFromForm(docRkkDto.getPublicationDate()));
 
         return docRkk;
     }
 
     private ClsNpaType getNpaTypeById(String npaTypeId) {
         ClsNpaType clsNpaType = null;
-        Long id = Long.parseLong(npaTypeId);
-        if (id != null) {
+        if (npaTypeId != null) {
+            Long id = Long.parseLong(npaTypeId);
             clsNpaType = clsNpaTypeRepo.findById(id).orElse(null);
         }
         return clsNpaType;
     }
 
-    private ClsOrganization getResponsibleOrganizationById(String clsOrganizationId) {
+    private ClsOrganization getOrganizationById(String clsOrganizationId) {
         ClsOrganization clsOrganization = null;
-        Long id = Long.parseLong(clsOrganizationId);
-        if (id != null) {
+        if (clsOrganizationId != null) {
+            Long id = Long.parseLong(clsOrganizationId);
             clsOrganization = clsOrganizationRepo.findById(id).orElse(null);
         }
         return clsOrganization;
     }
 
-    private ClsEmployee getResponsibleEmployeeById(String employeeId) {
+    private ClsEmployee getEmployeeById(String employeeId) {
         ClsEmployee clsEmployee = null;
-        Long id = Long.parseLong(employeeId);
-        if (id != null) {
+        if (employeeId != null) {
+            Long id = Long.parseLong(employeeId);
             clsEmployee = clsEmployeeRepo.findById(id).orElse(null);
         }
         return clsEmployee;
     }
 
+    private ClsSession getSessionById(String sessionId) {
+        ClsSession clsSession = null;
+        if (sessionId != null) {
+            Long id = Long.parseLong(sessionId);
+            clsSession = clsSessionRepo.findById(id).orElse(null);
+        }
+        return clsSession;
+    }
+
     private ClsRkkStatus getRkkStatusById(String statusId) {
         ClsRkkStatus status = null;
-        Long id = Long.parseLong(statusId);
-        if (id != null) {
+        if (statusId != null) {
+            Long id = Long.parseLong(statusId);
             status = clsRkkStatusRepo.findById(id).orElse(null);
         }
         return status;

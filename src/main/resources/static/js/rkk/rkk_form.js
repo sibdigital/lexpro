@@ -1,6 +1,12 @@
 webix.i18n.setLocale("ru-RU");
 
-function btnSaveActions() {
+function changeRkkFilesDatesFormat(obj) {
+    if ( obj.signingDate != null && !(obj.signingDate instanceof Date)) {
+        obj.signingDate = convertToDate(obj.signingDate);
+    }
+}
+
+function btnSaveRkkActions() {
     if ($$('rkkForm').validate()) {
         let params = $$('rkkForm').getValues();
 
@@ -19,26 +25,9 @@ function btnSaveActions() {
     }
 }
 
-var rkkFormTabbar = {
-    id: 'rkkTabs',
-    view: 'tabbar',
-    multiview: true,
-    borderless:true,
-    value: 'mainRkkTabId',
-    options: [
-        {
-            id: 'mainRkkTabId',
-            value: 'Основное',
-        },
-        {
-            id: 'attachmentTabId',
-            value: 'Вложения',
-        },
-    ]
-}
-
+///////////////////////////////////////// MAIN TAB ////////////////////////////////////////////////////
 var mainRkkTab = {
-    id: 'mainRkkTabId',
+    id: 'passportTabId',
     rows: [
         {
           cols: [
@@ -64,13 +53,24 @@ var mainRkkTab = {
         },
         {id: 'rkkNumber', name: 'rkkNumber', view: 'text', label: '№ РКК', labelPosition: 'top', required: true,},
         {
-            id: 'npaName',
-            name: 'npaName',
-            view: "textarea",
-            label: "Наименование НПА",
-            labelPosition: 'top',
-            required: true,
-            height: 150,
+            cols: [{
+                id: 'npaName',
+                name: 'npaName',
+                view: "textarea",
+                label: "Наименование НПА",
+                labelPosition: 'top',
+                required: true,
+                height: 150,
+            },
+                {
+                    id: 'legislativeBasis',
+                    name: 'legislativeBasis',
+                    view: 'textarea',
+                    label: 'Законодательная основа',
+                    labelPosition: 'top',
+                    required: true,
+                    height: 150,
+                },]
         },
         {
             cols: [
@@ -97,6 +97,28 @@ var mainRkkTab = {
         {
             cols: [
                 {
+                    id: 'lawSubject',
+                    name: 'lawSubject',
+                    view: 'richselect',
+                    label: 'Субъект права законодательной инициативы',
+                    labelPosition: 'top',
+                    required: true,
+                    options: 'law_subject_list',
+                },
+                {
+                    id: 'speaker',
+                    name: 'speaker',
+                    view: 'richselect',
+                    label: 'Докладчик',
+                    labelPosition: 'top',
+                    required: true,
+                    options: 'responsible_employee_list',
+                },
+            ]
+        },
+        {
+            cols: [
+                {
                     id: 'responsibleOrganization',
                     name: 'responsibleOrganization',
                     view: 'richselect',
@@ -119,12 +141,46 @@ var mainRkkTab = {
         {
             cols: [
                 {
-                    id: 'includedInAgenta',
-                    name: 'includedInAgenta',
-                    view: 'checkbox',
+                    id: 'includedInAgenda',
+                    name: 'includedInAgenda',
+                    view: 'datepicker',
                     label: 'Включен в повестку',
                     labelPosition: 'top',
+                    timepicker: false,
                 },
+                {
+                    id: 'agendaNumber',
+                    name: 'agendaNumber',
+                    view: 'text',
+                    label: 'Номер по повестке',
+                    labelPosition: 'top',
+                },
+            ]
+        },
+        {
+            cols: [
+                {
+                    id: 'session',
+                    name: 'session',
+                    view: 'richselect',
+                    label: 'Номер сессии',
+                    labelPosition: 'top',
+                    options: 'session_list',
+                },
+                {
+                    id: 'sessionDate',
+                    name: 'sessionDate',
+                    // template: '#session.date#',
+                    view: 'datepicker',
+                    label: 'Дата сессии',
+                    labelPosition: 'top',
+                    timepicker: false,
+                    readonly: true
+                },
+            ]
+        },
+        {
+            cols: [
                 {
                     id: 'deadline',
                     name: 'deadline',
@@ -133,22 +189,30 @@ var mainRkkTab = {
                     labelPosition: 'top',
                     timepicker: false,
                 },
+                {
+                    id: 'readyForSession',
+                    name: 'readyForSession',
+                    view: 'checkbox',
+                    label: 'Подготовлен к сессии',
+                    labelPosition: 'top',
+                },
             ]
         },
         {
             cols: [
                 {
-                    id: 'sessionNumber',
-                    name: 'sessionNumber',
-                    view: 'text',
-                    label: 'Номер сессии',
+                    id: 'headSignature',
+                    name: 'headSignature',
+                    view: 'datepicker',
+                    label: 'Подпись Главы / Председателя НХ',
                     labelPosition: 'top',
+                    timepicker: false,
                 },
                 {
-                    id: 'sessionDate',
-                    name: 'sessionDate',
+                    id: 'publicationDate',
+                    name: 'publicationDate',
                     view: 'datepicker',
-                    label: 'Дата сессии',
+                    label: 'Опубликование',
                     labelPosition: 'top',
                     timepicker: false,
                 },
@@ -157,92 +221,153 @@ var mainRkkTab = {
     ]
 }
 
-var rkkFileUploader = {
-    id: 'upload',
-    view: 'uploader',
-    css: 'transparentBtnStyle',
-    type: "icon",
-    icon: "mdi mdi-download",
-    label: 'Загрузить',
-    upload: 'upload_rkk_files',
-    required: true,
-    autosend: true,
-    accept: 'application/pdf, application/msword',
-    formData: function () {
-        let params = $$('rkkForm').getValues();
-        return {
-            docRkkId: params.id
-        };
-    },
-    multiple: true,
-    on: {
-        onFileUpload: (response) => {
-            if (response.cause == "Ошибка сохранения" || response.cause == "Отсутствует организация") {
-                webix.message(response.cause, "error")
-            } else if (response.cause == "Вы уже загружали этот файл") {
-                webix.message(response.cause + ": " + response.sname, "error")
-                console.log(response.cause)
-            } else {
-                webix.message(response.cause + ": " + response.sname, "success")
-                $$('attachmentDataviewId').load(function ()
-                 {
-                     let params = {
-                         "docRkkId" : $$('rkkForm').getValues().id
-                        }
-                     return webix.ajax().get('doc_rkk_files', params);
-                });
-            }
-        }
-    }
-}
+//////////////////////////////////// FILE UPLOADER TAB/////////////////////////////////////////////////
 
 var docFileColumn = {
     id: 'docFileColumnId',
     header: 'Файл',
     template: function (obj) {
-        let docImg;
-        if (obj.fileExtension == ".zip") {
-            docImg = "zip.png"
-        } else {
-            docImg = "pdf.png"
-        }
-        return '<div class="overall"><div><img scr="images/pdf.png"></div></div>';
-    }
+        let imageClass = getImageClassByExtension(obj.fileExtension);
+        return '<div class="'+ imageClass + '"></div>' + obj.originalFileName;
+    },
+    adjust: true,
+    fillspace: true,
 }
 
-var attachmentDatatable = {
+var attachmentTableColumns = [
+    { id: 'group',        header: 'Группа',   template: '#group.name#',        adjust: true, sort: 'string'},
+    { id: 'type',         header: 'Тип',      template: '#type.name#',         adjust: true, sort: 'string'},
+    { id: 'participant',  header: 'Участник', template: '#participant.name#',  adjust: true, sort: 'string'},
+    { id: 'numberAttachment',  header: 'Номер',                                adjust: true, sort: 'string'},
+    { id: 'signingDate',  header: 'Дата подписания',       format: dateFormat,              adjust: true, sort: 'date'},
+    { id: 'pageCount',    header: 'Количество страниц',                        adjust: true, sort: 'string'},
+    docFileColumn,
+]
+
+var attachmentTable = {
     id: 'attachmentDatatableId',
     view: 'datatable',
     autoConfig: true,
     select: 'row',
-    // url: function () {
-    //     let params = {
-    //         "docRkkId" : 1
-    //     }
-    //     return webix.ajax().get('doc_rkk_files', params);
-    // },
-    columns: [docFileColumn]
+    resizeColumn:true,
+    readonly: true,
+    columns: attachmentTableColumns,
+    scheme: {
+        $init: function (obj) {
+            changeRkkFilesDatesFormat(obj)
+        },
+        $update: function (obj) {
+            changeRkkFilesDatesFormat(obj)
+        }
+    },
+    on: {
+        onBeforeLoad: function () {
+            this.showOverlay("Загружаю...");
+        },
+        onAfterLoad: function () {
+            this.hideOverlay();
+            if (!this.count()) {
+                this.showOverlay("Отсутствуют данные")
+            }
+        },
+        onLoadError: function () {
+            this.hideOverlay();
+        },
+        onItemDblClick: function (id) {
+            let data = $$('attachmentDatatableId').getItem(id);
+            if (data.participant) {
+                data.participantId = data.participant.id;
+            }
 
+            if (data.group) {
+                data.groupId = data.group.id;
+            }
+
+            if (data.type) {
+                data.typeId = data.type.id;
+            }
+
+            let window = webix.ui({
+                view: 'window',
+                id: 'window',
+                head: 'Вложение (№ документа: ' + data.numberAttachment + ').',
+                close: true,
+                width: 1000,
+                height: 800,
+                position: 'center',
+                modal: true,
+                body: rkkAttachmentForm,
+                on: {
+                    'onShow': function () {
+                    }
+                }
+            });
+
+            $$('rkkAttachmentForm').parse(data);
+
+            window.show();
+        }
+    },
 }
 
 var attachmentTab = {
     id: 'attachmentTabId',
-    rows:[
-        rkkFileUploader,
-        attachmentDatatable
+    rows: [
+        attachmentTable
     ]
 }
 
+///////////////////////////////////////// SPECIAL MARK TAB ////////////////////////////////////////////
+var specialMarksTab = {
+    id: 'specialMarksTabId',
+    rows: []
+}
+
+////////////////////////////////////// HISTORY OF CHANGES /////////////////////////////////////////////
+var changeHistoryTab = {
+    id: 'changeHistoryTabId',
+    rows: []
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 var rkkTabview = {
     id: 'rkkTabviewId',
     animate:false,
     cells: [
         mainRkkTab,
-        attachmentTab
+        attachmentTab,
+        specialMarksTab,
+        changeHistoryTab
     ]
 }
 
-var btnPanel = {
+var rkkFormTabbar = {
+    id: 'rkkTabs',
+    view: 'tabbar',
+    multiview: true,
+    borderless:true,
+    value: 'passportTabId',
+    options: [
+        {
+            id: 'passportTabId',
+            value: 'Паспорт ЗИ',
+        },
+        {
+            id: 'attachmentTabId',
+            value: 'Вложения',
+        },
+        {
+            id: 'specialMarksTabId',
+            value: 'Особые отметки',
+        },
+        {
+            id: 'changeHistoryTabId',
+            value: 'Протокол правки',
+        },
+    ]
+}
+
+var btnRkkPanel = {
     cols: [
         {},
         {
@@ -252,7 +377,7 @@ var btnPanel = {
             css: 'webix_primary',
             value: 'Сохранить',
             click: function () {
-                btnSaveActions();
+                btnSaveRkkActions();
             }
         },
         {
@@ -282,7 +407,7 @@ const rkkForm = {
                     rkkFormTabbar,
                     rkkTabview,
                     {},
-                    btnPanel,
+                    btnRkkPanel,
                 ]
             },
         ]

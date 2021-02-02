@@ -18,6 +18,8 @@ public interface RkkService {
 
     List<ClsEmployee> getEmployeeList();
 
+    List<ClsSession> getSessionList();
+
     DocRkk saveDocRkk(DocRkkDto docRkkDto);
 
 }

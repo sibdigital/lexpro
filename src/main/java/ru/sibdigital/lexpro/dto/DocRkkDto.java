@@ -20,15 +20,21 @@ public class DocRkkDto {
     private Long            id;
     private String          rkkNumber;
     private String          npaName;
+    private String          npaType;
     private String          registrationDate;
     private String          introductionDate;
+    private String          legislativeBasis;
+    private String          lawSubject;
+    private String          speaker;
+    private Boolean         readyForSession;
     private String          deadline;
-    private Integer         sessionNumber;
-    private String          sessionDate;
-    private Boolean         includedInAgenta;
-    private String          npaType;
+    private String          includedInAgenda;
     private String          responsibleOrganization;
     private String          responsibleEmployee;
     private String          status;
+    private String          session;
+    private String          agendaNumber;
+    private String          headSignature;
+    private String          publicationDate;
 
 }

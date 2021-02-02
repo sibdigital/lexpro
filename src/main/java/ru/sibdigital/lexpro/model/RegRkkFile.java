@@ -6,19 +6,20 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Objects;
 
 @Entity
-@Table(name = "reg_doc_rkk_file", schema = "public")
+@Table(name = "reg_rkk_file", schema = "public")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder(toBuilder = true)
-public class RegDocRkkFile {
+public class RegRkkFile {
 
     @Id
     @Column(name = "id", nullable = false)
-    @SequenceGenerator(name = "REG_DOC_RKK_FILE_GEN", sequenceName = "reg_doc_rkk_file_id_seq", allocationSize = 1, schema = "public")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "REG_DOC_RKK_FILE_GEN")
+    @SequenceGenerator(name = "REG_RKK_FILE_GEN", sequenceName = "reg_rkk_file_id_seq", allocationSize = 1, schema = "public")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "REG_RKK_FILE_GEN")
     private Long id;
     private Boolean isDeleted;
     private Timestamp timeCreate;
@@ -28,6 +29,9 @@ public class RegDocRkkFile {
     private String fileExtension;
     private String hash;
     private Long fileSize;
+    private String numberAttachment;
+    private Date signingDate;
+    private Integer pageCount;
 
     public Long getId() {return id;}
     public void setId(Long id) {this.id = id;}
@@ -38,12 +42,35 @@ public class RegDocRkkFile {
     public DocRkk getDocRkk() {return docRkk;}
     public void setDocRkk(DocRkk docRkk) {this.docRkk = docRkk;}
 
+    @OneToOne
+    @JoinColumn(name = "id_group", referencedColumnName = "id")
+    private ClsGroupAttachment group;
+    public ClsGroupAttachment getGroup() {return group;}
+    public void setGroup(ClsGroupAttachment group) {this.group = group;}
+
+    @OneToOne
+    @JoinColumn(name = "id_type", referencedColumnName = "id")
+    private ClsTypeAttachment type;
+    public ClsTypeAttachment getType() {return type;}
+    public void setType(ClsTypeAttachment type) {this.type = type;}
+
+    @OneToOne
+    @JoinColumn(name = "id_participant", referencedColumnName = "id")
+    private ClsOrganization participant;
+    public ClsOrganization getParticipant() {return participant;}
+    public void setParticipant(ClsOrganization participant) {this.participant = participant;}
+
+    @OneToOne
+    @JoinColumn(name = "id_operator", referencedColumnName = "id")
+    private ClsEmployee operator;
+    public ClsEmployee getOperator() {return operator;}
+    public void setOperator(ClsEmployee operator) {this.operator = operator;}
+
     @Basic
     @Column(name = "is_deleted", nullable = true)
     public Boolean getDeleted() {
         return isDeleted;
     }
-
     public void setDeleted(Boolean deleted) {
         isDeleted = deleted;
     }
@@ -53,7 +80,6 @@ public class RegDocRkkFile {
     public Timestamp getTimeCreate() {
         return timeCreate;
     }
-
     public void setTimeCreate(Timestamp timeCreate) {
         this.timeCreate = timeCreate;
     }
@@ -63,7 +89,6 @@ public class RegDocRkkFile {
     public String getAttachmentPath() {
         return attachmentPath;
     }
-
     public void setAttachmentPath(String attachmentPath) {
         this.attachmentPath = attachmentPath;
     }
@@ -73,7 +98,6 @@ public class RegDocRkkFile {
     public String getFileName() {
         return fileName;
     }
-
     public void setFileName(String fileName) {
         this.fileName = fileName;
     }
@@ -83,7 +107,6 @@ public class RegDocRkkFile {
     public String getOriginalFileName() {
         return originalFileName;
     }
-
     public void setOriginalFileName(String originalFileName) {
         this.originalFileName = originalFileName;
     }
@@ -93,7 +116,6 @@ public class RegDocRkkFile {
     public String getFileExtension() {
         return fileExtension;
     }
-
     public void setFileExtension(String fileExtension) {
         this.fileExtension = fileExtension;
     }
@@ -103,7 +125,6 @@ public class RegDocRkkFile {
     public String getHash() {
         return hash;
     }
-
     public void setHash(String hash) {
         this.hash = hash;
     }
@@ -113,24 +134,35 @@ public class RegDocRkkFile {
     public Long getFileSize() {
         return fileSize;
     }
-
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
     }
 
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RegDocRkkFile that = (RegDocRkkFile) o;
-        return Objects.equals(id, that.id) && Objects.equals(isDeleted, that.isDeleted) && Objects.equals(timeCreate, that.timeCreate) && Objects.equals(attachmentPath, that.attachmentPath) && Objects.equals(fileName, that.fileName) && Objects.equals(originalFileName, that.originalFileName) && Objects.equals(fileExtension, that.fileExtension) && Objects.equals(hash, that.hash) && Objects.equals(fileSize, that.fileSize);
-
+    @Basic
+    @Column(name = "number_attachment")
+    public String getNumberAttachment() {
+        return numberAttachment;
+    }
+    public void setNumberAttachment(String numberAttachment) {
+        this.numberAttachment = numberAttachment;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, isDeleted, timeCreate, attachmentPath, fileName, originalFileName, fileExtension, hash, fileSize);
+    @Basic
+    @Column(name = "signing_date")
+    public Date getSigningDate() {
+        return signingDate;
+    }
+    public void setSigningDate(Date signingDate) {
+        this.signingDate = signingDate;
+    }
+
+    @Basic
+    @Column(name = "page_count")
+    public Integer getPageCount() {
+        return pageCount;
+    }
+    public void setPageCount(Integer pageCount) {
+        this.pageCount = pageCount;
     }
 }
 

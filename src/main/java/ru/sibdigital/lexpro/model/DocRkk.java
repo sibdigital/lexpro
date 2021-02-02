@@ -1,6 +1,5 @@
 package ru.sibdigital.lexpro.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
@@ -26,10 +25,13 @@ public class DocRkk implements Serializable {
     private String          npaName;
     private Date            registrationDate;
     private Date            introductionDate;
+    private String          legislativeBasis;
     private Date            deadline;
-    private Integer         sessionNumber;
-    private Date            sessionDate;
-    private Boolean         includedInAgenta;
+    private Date            includedInAgenda;
+    private Boolean         readyForSession;
+    private String          agendaNumber;
+    private Date            headSignature;
+    private Date            publicationDate;
 
     @OneToOne
     @JoinColumn(name = "id_npa_type", referencedColumnName = "id")
@@ -46,6 +48,18 @@ public class DocRkk implements Serializable {
     @OneToOne
     @JoinColumn(name = "id_status", referencedColumnName = "id")
     private ClsRkkStatus    status;
+
+    @OneToOne
+    @JoinColumn(name = "id_law_subject", referencedColumnName = "id")
+    private ClsOrganization lawSubject;
+
+    @OneToOne
+    @JoinColumn(name = "id_speaker", referencedColumnName = "id")
+    private ClsEmployee speaker;
+
+    @OneToOne
+    @JoinColumn(name = "id_session", referencedColumnName = "id")
+    private ClsSession session;
 
     public Long getId() {
         return id;
@@ -100,30 +114,57 @@ public class DocRkk implements Serializable {
     }
 
     @Basic
-    @Column(name = "session_number")
-    public Integer getSessionNumber() {
-        return sessionNumber;
+    @Column(name = "legislative_basis")
+    public String getLegislativeBasis() {
+        return legislativeBasis;
     }
-    public void setSessionNumber(Integer sessionNumber) {
-        this.sessionNumber = sessionNumber;
-    }
-
-    @Basic
-    @Column(name = "session_date")
-    public Date getSessionDate() {
-        return sessionDate;
-    }
-    public void setSessionDate(Date sessionDate) {
-        this.sessionDate = sessionDate;
+    public void setLegislativeBasis(String legislativeBasis) {
+        this.legislativeBasis = legislativeBasis;
     }
 
     @Basic
-    @Column(name = "included_in_agenta")
-    public Boolean getIncludedInAgenta() {
-        return includedInAgenta;
+    @Column(name = "included_in_agenda")
+    public Date getIncludedInAgenda() {
+        return includedInAgenda;
     }
-    public void setIncludedInAgenta(Boolean includedInAgenta) {
-        this.includedInAgenta = includedInAgenta;
+    public void setIncludedInAgenda(Date includedInAgenda) {
+        this.includedInAgenda = includedInAgenda;
+    }
+
+    @Basic
+    @Column(name = "ready_for_session")
+    public Boolean getReadyForSession() {
+        return readyForSession;
+    }
+    public void setReadyForSession(Boolean readyForSession) {
+        this.readyForSession = readyForSession;
+    }
+
+    @Basic
+    @Column(name = "agenda_number")
+    public String getAgendaNumber() {
+        return agendaNumber;
+    }
+    public void setAgendaNumber(String agendaNumber) {
+        this.agendaNumber = agendaNumber;
+    }
+
+    @Basic
+    @Column(name = "head_signature")
+    public Date getHeadSignature() {
+        return headSignature;
+    }
+    public void setHeadSignature(Date headSignature) {
+        this.headSignature = headSignature;
+    }
+
+    @Basic
+    @Column(name = "publication_date")
+    public Date getPublicationDate() {
+        return publicationDate;
+    }
+    public void setPublicationDate(Date publicationDate) {
+        this.publicationDate = publicationDate;
     }
 
     public ClsNpaType getNpaType() {
@@ -154,6 +195,27 @@ public class DocRkk implements Serializable {
         this.status = status;
     }
 
+    public ClsOrganization getLawSubject() {
+        return lawSubject;
+    }
+    public void setLawSubject(ClsOrganization lawSubject) {
+        this.lawSubject = lawSubject;
+    }
+
+    public ClsEmployee getSpeaker() {
+        return speaker;
+    }
+    public void setSpeaker(ClsEmployee speaker) {
+        this.speaker = speaker;
+    }
+
+    public ClsSession getSession() {
+        return session;
+    }
+    public void setSession(ClsSession session) {
+        this.session = session;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -164,18 +226,21 @@ public class DocRkk implements Serializable {
                 Objects.equals(npaName, docRkk.npaName) &&
                 Objects.equals(registrationDate, docRkk.registrationDate) &&
                 Objects.equals(introductionDate, docRkk.introductionDate) &&
+                Objects.equals(legislativeBasis, docRkk.legislativeBasis) &&
                 Objects.equals(deadline, docRkk.deadline) &&
-                Objects.equals(sessionNumber, docRkk.sessionNumber) &&
-                Objects.equals(sessionDate, docRkk.sessionDate) &&
-                Objects.equals(includedInAgenta, docRkk.includedInAgenta) &&
+                Objects.equals(includedInAgenda, docRkk.includedInAgenda) &&
+                Objects.equals(readyForSession, docRkk.readyForSession) &&
                 Objects.equals(npaType, docRkk.npaType) &&
                 Objects.equals(responsibleOrganization, docRkk.responsibleOrganization) &&
                 Objects.equals(responsibleEmployee, docRkk.responsibleEmployee) &&
-                Objects.equals(status, docRkk.status);
+                Objects.equals(status, docRkk.status) &&
+                Objects.equals(lawSubject, docRkk.lawSubject) &&
+                Objects.equals(speaker, docRkk.speaker) &&
+                Objects.equals(session, docRkk.session);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, rkkNumber, npaName, registrationDate, introductionDate, deadline, sessionNumber, sessionDate, includedInAgenta, npaType, responsibleOrganization, responsibleEmployee, status);
+        return Objects.hash(id, rkkNumber, npaName, registrationDate, introductionDate, legislativeBasis, deadline, includedInAgenda, readyForSession, npaType, responsibleOrganization, responsibleEmployee, status, lawSubject, speaker, session);
     }
 }

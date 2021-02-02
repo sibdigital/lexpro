@@ -78,34 +78,28 @@ public class RkkController extends SuperController {
         return list;
     }
 
+    @GetMapping("/law_subject_list")
+    public @ResponseBody
+    List<KeyValue> getLawSubjectListForRichselect() {
+        List<KeyValue> list = rkkService.getOrganizationList().stream()
+                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
+                .collect(Collectors.toList());
+        return list;
+    }
+
+    @GetMapping("/session_list")
+    public @ResponseBody
+    List<KeyValue> getSessionListForRichselect() {
+        List<KeyValue> list = rkkService.getSessionList().stream()
+                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getNumber()))
+                .collect(Collectors.toList());
+        return list;
+    }
+
     @PostMapping("/save_rkk")
     public @ResponseBody String saveRkk(@RequestBody DocRkkDto docRkkDto) {
         DocRkk docRkk = rkkService.saveDocRkk(docRkkDto);
         return "РКК сохранена";
     }
 
-    public static interface FileController {
-
-        default String getFileExtension(String name) {
-            int lastIndexOf = name.lastIndexOf(".");
-            if (lastIndexOf == -1) {
-                return ""; // empty extension
-            }
-            return name.substring(lastIndexOf);
-        }
-
-        default String getFileHash(java.io.File file){
-            String result = "NOT";
-            try {
-                final byte[] bytes = Files.readAllBytes(file.toPath());
-                byte[] hash = MessageDigest.getInstance("MD5").digest(bytes);
-                result = DatatypeConverter.printHexBinary(hash);
-            } catch (IOException ex) {
-                log.error(ex.getMessage());
-            } catch (NoSuchAlgorithmException ex) {
-                log.error(ex.getMessage());
-            }
-            return result;
-        }
-    }
 }

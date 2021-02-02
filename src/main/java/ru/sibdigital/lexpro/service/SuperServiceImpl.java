@@ -41,6 +41,18 @@ public class SuperServiceImpl implements SuperService{
     @Autowired
     RolePrivilegeService rolePrivilegeService;
 
+    @Autowired
+    ClsSessionRepo clsSessionRepo;
+
+    @Autowired
+    RegRkkFileRepo regRkkFileRepo;
+
+    @Autowired
+    ClsGroupAttachmentRepo clsGroupAttachmentRepo;
+
+    @Autowired
+    ClsTypeAttachmentRepo clsTypeAttachmentRepo;
+
     @Override
     public Date parseDateFromForm(String stringDate) {
         Date date = null;

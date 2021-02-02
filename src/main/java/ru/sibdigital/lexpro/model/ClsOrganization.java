@@ -25,7 +25,6 @@ public class ClsOrganization {
     private Integer statusImport;
     private Timestamp timeImport;
     private Timestamp timeCreate;
-    private Integer idTypeOrganization;
     private Boolean isActivated;
     private Boolean isDeleted;
 
@@ -68,15 +67,6 @@ public class ClsOrganization {
     }
 
     @Basic
-    @Column(name = "id_type_organization")
-    public Integer getIdTypeOrganization() {
-        return idTypeOrganization;
-    }
-    public void setIdTypeOrganization(Integer idTypeOrganization) {
-        this.idTypeOrganization = idTypeOrganization;
-    }
-
-    @Basic
     @Column(name = "is_deleted")
     public Boolean getDeleted() {
         return isDeleted;
@@ -113,13 +103,12 @@ public class ClsOrganization {
                 Objects.equals(statusImport, that.statusImport) &&
                 Objects.equals(timeImport, that.timeImport) &&
                 Objects.equals(timeCreate, that.timeCreate) &&
-                Objects.equals(idTypeOrganization, that.idTypeOrganization) &&
                 Objects.equals(isActivated, that.isActivated) &&
                 Objects.equals(isDeleted, that.isDeleted);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, statusImport, timeImport, timeCreate, idTypeOrganization, isActivated, isDeleted);
+        return Objects.hash(id, name, statusImport, timeImport, timeCreate, isActivated, isDeleted);
     }
 }

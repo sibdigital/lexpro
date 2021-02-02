@@ -18,3 +18,4 @@ create table if not exists reg_role_privilege
         constraint fk_privilege
             references cls_privilege
 );
+

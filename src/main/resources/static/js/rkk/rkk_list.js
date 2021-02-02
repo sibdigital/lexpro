@@ -13,9 +13,35 @@ function changeRkkDatesFormat(obj) {
         obj.deadline = convertToDate(obj.deadline);
     }
 
-    if ( obj.sessionDate != null && !(obj.sessionDate instanceof Date)) {
-        obj.sessionDate = convertToDate(obj.sessionDate);
+    if ( obj.includedInAgenda != null && !(obj.includedInAgenda instanceof Date)) {
+        obj.includedInAgenda = convertToDate(obj.includedInAgenda);
     }
+
+    if ( obj.headSignature != null && !(obj.headSignature instanceof Date)) {
+        obj.headSignature = convertToDate(obj.headSignature);
+    }
+
+    if ( obj.publicationDate != null && !(obj.publicationDate instanceof Date)) {
+        obj.publicationDate = convertToDate(obj.publicationDate);
+    }
+}
+
+function getSessionNumber(session) {
+    let number = '';
+    if (session) {
+        number = session.number;
+    }
+
+    return number;
+}
+
+function getSessionDate(session) {
+    let date = '';
+    if (session) {
+        date = convertToDate(session.date);
+    }
+
+    return date;
 }
 
 function openRkkTab(id) {
@@ -25,34 +51,55 @@ function openRkkTab(id) {
     data.npaType.value = data.npaType.name;
     data.responsibleOrganization.value = data.responsibleOrganization.name;
     data.responsibleEmployee.value = data.responsibleEmployee.name;
+    data.lawSubject.value = data.lawSubject.name;
+    data.speaker.value = data.speaker.name;
+    if (data.session) {
+        data.session.value = data.session.number;
+        data.sessionDate   = data.session && convertToDate(data.session.date);
+    }
+
 
     webix.ui(rkkForm, $$('rkkListId'));
     $$('rkkForm').parse(data);
+
+    let params = {'docRkkId': data.id};
+    let attachmentData = webix.ajax().get('doc_rkk_files', params);
+    $$('attachmentDatatableId').parse(attachmentData);
 }
 
 var includedInAgentaColumn = {
-    id: 'includedInAgenta',
+    id: 'includedInAgenda',
     header: {text: "Включен в <br/> повестку",
              height: 40,
              css: "multiline"},
     adjust: true,
-    template: function (obj, type, value) {
-        return (value ? "<span class='webix_icon fas fa-check'></span>" : "")
-    },
-    css: 'styleIcon'
+    format: dateFormat,
+    // template: function (obj, type, value) {
+    //     return (value ? "<span class='webix_icon fas fa-check'></span>" : "")
+    // },
+    // css: 'styleIcon'
 }
 
+// 3.4.3 Личный кабинет. Перечислены столбцы
 var rkkTableColumns = [
-    { id: 'rkkNumber',          header: '№ РКК',                                  adjust: true, sort: 'string'},
-    { id: 'npaName',            header: 'Наименование НПА',   fillspace: true,    adjust: true, sort: 'string', },
-    { id: 'registrationDate',   header: 'Дата регистрации',   format: dateFormat, adjust: true, sort: 'date'},
-    { id: 'introductionDate',   header: 'Дата внесения',      format: dateFormat, adjust: true, sort: 'date'},
-    { id: 'npaType',            header: 'Тип НПА',   template: '#npaType.name#',  adjust: true},
-    { id: 'deadline',           header: 'Контрольный срок',   format: dateFormat, adjust: true, sort: 'date'},
-    { id: 'sessionNumber',      header: 'Номер сессии',                           adjust: true, sort: 'string'},
-    { id: 'sessionDate',        header: 'Дата сессии',        format: dateFormat, adjust: true},
+    { id: 'rkkNumber',          header: '№ РКК',                                    adjust: true, sort: 'string'},
+    { id: 'npaName',            header: 'Наименование НПА',   maxWidth:250,         adjust: true, sort: 'string', },
+    { id: 'registrationDate',   header: 'Дата регистрации',   format: dateFormat,   adjust: true, sort: 'date'},
+    { id: 'introductionDate',   header: 'Дата внесения',      format: dateFormat,   adjust: true, sort: 'date'},
+    { id: 'npaType',            header: 'Тип НПА',   template: '#npaType.name#',    adjust: true,},
+    { id: 'lawSubject',         header:
+                                {text: "Субъект права <br/> законодательной инициативы",
+                                height: 40,
+                                css: "multiline"}, template: '#lawSubject.name#', adjust: true,},
+    { id: 'responsibleOrganization', header: 'Ответственный комитет', template: '#responsibleOrganization.name#', adjust: true,},
+    { id: 'responsibleEmployee',     header: 'Ответственное лицо',    template: '#responsibleEmployee.name#',     adjust: true,},
+    { id: 'deadline',           header: 'Контрольный срок',   format: dateFormat,   adjust: true, sort: 'date'},
+    { id: 'sessionNumber',      header: 'Номер сессии', template: function (obj) {return getSessionNumber(obj.session);},
+                                                            adjust: true, sort: 'string'},
+    { id: 'sessionDate',        header: 'Дата сессии',  template: function (obj) {return getSessionDate(obj.session);},
+                                                            format: dateFormat,   adjust: true},
     includedInAgentaColumn,
-    { id: 'status',             header: 'Состояние',   template: '#status.name#', adjust: true},
+    { id: 'status',             header: 'Состояние',   template: '#status.name#',   adjust: true},
 ]
 
 var pager = {
