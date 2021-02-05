@@ -4,12 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.sibdigital.lexpro.model.ClsEmployee;
-import ru.sibdigital.lexpro.model.ClsNpaType;
-import ru.sibdigital.lexpro.model.ClsOrganization;
-import ru.sibdigital.lexpro.model.ClsRkkStatus;
 
-import java.util.Date;
+import java.util.List;
+
 
 @Data
 @Builder(toBuilder = true)
@@ -24,17 +21,17 @@ public class DocRkkDto {
     private String          registrationDate;
     private String          introductionDate;
     private String          legislativeBasis;
-    private String          lawSubject;
-    private String          speaker;
+    private Long            lawSubject; // id of Subject
+    private Long            speaker; // id of Speaker
     private Boolean         readyForSession;
     private String          deadline;
     private String          includedInAgenda;
-    private String          responsibleOrganization;
-    private String          responsibleEmployee;
-    private String          status;
-    private String          session;
+    private Long            responsibleOrganization; // id of Organization
+    private Long            responsibleEmployee; // id of Employee
+    private Long            status;
+    private Long            session;
     private String          agendaNumber;
     private String          headSignature;
     private String          publicationDate;
-
+    private List<RegRkkAttachmentDto> attachments;
 }

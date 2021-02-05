@@ -1,6 +1,9 @@
-function btnSaveRkkActions() {
+function btnSaveRkkAttachmentActions() {
     if ($$('rkkAttachmentForm').validate()) {
+        let docRkkValues = $$('rkkForm').getValues();
+
         let params = $$('rkkAttachmentForm').getValues();
+        params.docRkkId = docRkkValues.id;
 
         webix.ajax().headers({
             'Content-Type': 'application/json'
@@ -9,9 +12,10 @@ function btnSaveRkkActions() {
             if (data.text() === 'Вложение сохранено') {
                 webix.message({text: data.text(), type: 'success'});
 
-                // webix.ui(rkkList, $$('rkkFormId'));
-                // $$('rkk_table').clearAll();
-                // $$('rkk_table').load('doc_rkks');
+                $$('window').close();
+                $$('attachmentDatatableId').clearAll();
+                let attachmentData = webix.ajax().get('doc_rkk_attachments', params);
+                $$('attachmentDatatableId').parse(attachmentData);
             }
         });
     }
@@ -30,27 +34,24 @@ var rkkFileUploader = {
     accept: 'application/pdf, application/msword',
     formData: function () {
         let params = $$('rkkForm').getValues();
-        return {
-            docRkkId: params.id
-        };
+        if (params.id) {
+            return {
+                docRkkId: params.id
+            };
+        }
     },
     multiple: true,
     on: {
         onFileUpload: (response) => {
-            if (response.cause == "Ошибка сохранения" || response.cause == "Отсутствует организация") {
+            if (response.cause == "Ошибка сохранения") {
                 webix.message(response.cause, "error")
-            } else if (response.cause == "Вы уже загружали этот файл") {
-                webix.message(response.cause + ": " + response.sname, "error")
-                console.log(response.cause)
             } else {
                 webix.message(response.cause + ": " + response.sname, "success")
-                $$('attachmentDatatableId').load(function ()
-                {
-                    let params = {
-                        "docRkkId" : $$('rkkForm').getValues().id
-                    }
-                    return webix.ajax().get('doc_rkk_files', params);
-                });
+                $$('rkkAttachmentForm').setValues({
+                    originalFileName: response.sname,
+                    pageCount: response.pageCount,
+                    newFileId: response.fileId,
+                }, true);
             }
         }
     }
@@ -66,7 +67,7 @@ var btnRkkAttachmentPanel = {
             css: 'webix_primary',
             value: 'Сохранить',
             click: function () {
-                btnSaveRkkActions();
+                btnSaveRkkAttachmentActions();
             }
         },
         {
@@ -76,7 +77,7 @@ var btnRkkAttachmentPanel = {
             css: 'webix_secondary',
             value: 'Отмена',
             click: function () {
-                webix.ui(rkkList, $$('rkkFormId'));
+                $$('window').close();
             }
         }
     ]
@@ -85,12 +86,14 @@ var btnRkkAttachmentPanel = {
 var rkkAttachmentElements = [
     { view: 'text', label: '№ документа', labelPosition: 'top', name: 'numberAttachment',},
     { view: 'datepicker', label: 'Дата подписания', labelPosition: 'top', name: 'signingDate', timepicker: false,},
-    { view: 'combo', label: 'Участник', labelPosition: 'top', name: 'participantId', options: 'participant_attachment_list'},
-    { view: 'combo', label: 'Группа', labelPosition: 'top', name: 'groupId', options: 'group_attachement_list'},
-    { view: 'combo', label: 'Тип документа', labelPosition: 'top', name: 'typeId', options: 'type_attachement_list'},
-    { view: 'text', label: 'Файл', labelPosition: 'top', name: 'originalFileName',},
-    { view: 'text', label: 'Кол-во стр.', labelPosition: 'top', name: 'pageCount',},
-    rkkFileUploader
+    { view: 'richselect', label: 'Участник', labelPosition: 'top', name: 'participantId', options: 'participant_attachment_list'},
+    { view: 'richselect', label: 'Группа', labelPosition: 'top', name: 'groupId', options: 'group_attachement_list'},
+    { view: 'richselect', label: 'Тип документа', labelPosition: 'top', name: 'typeId', options: 'type_attachement_list'},
+    { view: 'text', label: 'Файл', labelPosition: 'top', name: 'originalFileName', readonly:true},
+    { view: 'text', label: 'Кол-во стр.', labelPosition: 'top', name: 'pageCount', readonly:true},
+    rkkFileUploader,
+    {},
+    btnRkkAttachmentPanel,
 ]
 
 const rkkAttachmentForm = {
@@ -104,11 +107,7 @@ const rkkAttachmentForm = {
             {
                 view: 'form',
                 id: 'rkkAttachmentForm',
-                elements: [
-                    rkkAttachmentElements,
-                    {},
-                    btnRkkAttachmentPanel,
-                    ]
+                elements: rkkAttachmentElements,
             },
         ]
     }

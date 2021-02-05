@@ -1,7 +1,7 @@
 webix.i18n.setLocale("ru-RU");
 
 function changeRkkFilesDatesFormat(obj) {
-    if ( obj.signingDate != null && !(obj.signingDate instanceof Date)) {
+    if (obj.signingDate != null && !(obj.signingDate instanceof Date)) {
         obj.signingDate = convertToDate(obj.signingDate);
     }
 }
@@ -9,6 +9,7 @@ function changeRkkFilesDatesFormat(obj) {
 function btnSaveRkkActions() {
     if ($$('rkkForm').validate()) {
         let params = $$('rkkForm').getValues();
+        params.attachments = $$('attachmentDatatableId').serialize();
 
         webix.ajax().headers({
             'Content-Type': 'application/json'
@@ -227,20 +228,20 @@ var docFileColumn = {
     id: 'docFileColumnId',
     header: 'Файл',
     template: function (obj) {
-        let imageClass = getImageClassByExtension(obj.fileExtension);
-        return '<div class="'+ imageClass + '"></div>' + obj.originalFileName;
+        let imageClass = getImageClassByExtension(obj.file.fileExtension);
+        return '<div class="'+ imageClass + '"></div>' + obj.file.originalFileName;
     },
     adjust: true,
     fillspace: true,
 }
 
 var attachmentTableColumns = [
-    { id: 'group',        header: 'Группа',   template: '#group.name#',        adjust: true, sort: 'string'},
-    { id: 'type',         header: 'Тип',      template: '#type.name#',         adjust: true, sort: 'string'},
-    { id: 'participant',  header: 'Участник', template: '#participant.name#',  adjust: true, sort: 'string'},
-    { id: 'numberAttachment',  header: 'Номер',                                adjust: true, sort: 'string'},
-    { id: 'signingDate',  header: 'Дата подписания',       format: dateFormat,              adjust: true, sort: 'date'},
-    { id: 'pageCount',    header: 'Количество страниц',                        adjust: true, sort: 'string'},
+    { id: 'group',            header: 'Группа',            template: '#group.name#',            adjust: true, sort: 'string'},
+    { id: 'type',             header: 'Тип',               template: '#type.name#',             adjust: true, sort: 'string'},
+    { id: 'participant',      header: 'Участник',          template: '#participant.name#',      adjust: true, sort: 'string'},
+    { id: 'numberAttachment', header: 'Номер',                                                  adjust: true, sort: 'string'},
+    { id: 'signingDate',      header: 'Дата подписания',   format: dateFormat,                  adjust: true, sort: 'date'},
+    { id: 'pageCount',        header: 'Количество страниц',template: '#file.pageCount#',        adjust: true, sort: 'string'},
     docFileColumn,
 ]
 
@@ -287,6 +288,11 @@ var attachmentTable = {
                 data.typeId = data.type.id;
             }
 
+            if (data.file) {
+                data.originalFileName = data.file.originalFileName;
+                data.pageCount =  data.file.pageCount;
+            }
+
             let window = webix.ui({
                 view: 'window',
                 id: 'window',
@@ -310,9 +316,65 @@ var attachmentTable = {
     },
 }
 
+var btnAddAttachmentRkk = {
+    id: 'tnAddAttachment',
+    view: 'button',
+    css: 'webix_primary',
+    value: 'Добавить',
+    maxWidth: 300,
+    click: function () {
+        // if (checkIsRkkNewWithoutId()) {
+        //     webix.confirm({
+        //         title:"Сохранить новую РКК",
+        //         type:"confirm-warning",
+        //         ok:"Да", cancel:"Нет",
+        //         text:"Для прикрепления вложений в новую РКК"
+        //     }).then(function(){
+        //         webix.ajax()
+        //             .headers({'Content-type': 'application/json'})
+        //             .post('delete_file', JSON.stringify(param))
+        //             .then(function (data) {
+        //                 if (data !== null) {
+        //                     $$("docs_grid").remove($$("docs_grid").getSelectedId());
+        //                     webix.message("Файл удалён", 'success');
+        //                 } else {
+        //                     webix.message("Не удалось удалить файл", 'error');
+        //                 }
+        //             });
+        //     })
+        //
+        // }
+
+        let window = webix.ui({
+            view: 'window',
+            id: 'window',
+            head: 'Новое вложение',
+            close: true,
+            width: 1000,
+            height: 800,
+            position: 'center',
+            modal: true,
+            body: rkkAttachmentForm,
+            on: {
+                'onShow': function () {
+                }
+            }
+        });
+
+        window.show();
+    }
+}
+
+var topAttachmentPanel = {
+    cols: [
+        btnAddAttachmentRkk,
+    ]
+}
+
 var attachmentTab = {
     id: 'attachmentTabId',
     rows: [
+        topAttachmentPanel,
         attachmentTable
     ]
 }
@@ -335,8 +397,8 @@ var rkkTabview = {
     animate:false,
     cells: [
         mainRkkTab,
-        attachmentTab,
         specialMarksTab,
+        attachmentTab,
         changeHistoryTab
     ]
 }
@@ -353,12 +415,12 @@ var rkkFormTabbar = {
             value: 'Паспорт ЗИ',
         },
         {
-            id: 'attachmentTabId',
-            value: 'Вложения',
-        },
-        {
             id: 'specialMarksTabId',
             value: 'Особые отметки',
+        },
+        {
+            id: 'attachmentTabId',
+            value: 'Вложения',
         },
         {
             id: 'changeHistoryTabId',

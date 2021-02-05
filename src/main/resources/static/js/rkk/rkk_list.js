@@ -63,7 +63,7 @@ function openRkkTab(id) {
     $$('rkkForm').parse(data);
 
     let params = {'docRkkId': data.id};
-    let attachmentData = webix.ajax().get('doc_rkk_files', params);
+    let attachmentData = webix.ajax().get('doc_rkk_attachments', params);
     $$('attachmentDatatableId').parse(attachmentData);
 }
 

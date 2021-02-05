@@ -29,8 +29,6 @@ public class RegRkkFile {
     private String fileExtension;
     private String hash;
     private Long fileSize;
-    private String numberAttachment;
-    private Date signingDate;
     private Integer pageCount;
 
     public Long getId() {return id;}
@@ -41,24 +39,6 @@ public class RegRkkFile {
     private DocRkk docRkk;
     public DocRkk getDocRkk() {return docRkk;}
     public void setDocRkk(DocRkk docRkk) {this.docRkk = docRkk;}
-
-    @OneToOne
-    @JoinColumn(name = "id_group", referencedColumnName = "id")
-    private ClsGroupAttachment group;
-    public ClsGroupAttachment getGroup() {return group;}
-    public void setGroup(ClsGroupAttachment group) {this.group = group;}
-
-    @OneToOne
-    @JoinColumn(name = "id_type", referencedColumnName = "id")
-    private ClsTypeAttachment type;
-    public ClsTypeAttachment getType() {return type;}
-    public void setType(ClsTypeAttachment type) {this.type = type;}
-
-    @OneToOne
-    @JoinColumn(name = "id_participant", referencedColumnName = "id")
-    private ClsOrganization participant;
-    public ClsOrganization getParticipant() {return participant;}
-    public void setParticipant(ClsOrganization participant) {this.participant = participant;}
 
     @OneToOne
     @JoinColumn(name = "id_operator", referencedColumnName = "id")
@@ -136,24 +116,6 @@ public class RegRkkFile {
     }
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
-    }
-
-    @Basic
-    @Column(name = "number_attachment")
-    public String getNumberAttachment() {
-        return numberAttachment;
-    }
-    public void setNumberAttachment(String numberAttachment) {
-        this.numberAttachment = numberAttachment;
-    }
-
-    @Basic
-    @Column(name = "signing_date")
-    public Date getSigningDate() {
-        return signingDate;
-    }
-    public void setSigningDate(Date signingDate) {
-        this.signingDate = signingDate;
     }
 
     @Basic

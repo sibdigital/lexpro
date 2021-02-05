@@ -121,10 +121,66 @@ CREATE TABLE if not exists cls_type_attachment
     code   varchar(16)
 );
 
+-- create table if not exists reg_rkk_file
+-- (
+--     id                 serial   not null
+--         constraint reg_doc_rkk_file_pkey
+--             primary key,
+--     id_rkk             integer
+--         constraint fk_doc_rkk
+--             references doc_rkk,
+--     id_group           integer
+--         constraint fk_group_attachment
+--             references cls_group_attachment,
+--     id_type            integer
+--         constraint fk_type_attachment
+--             references cls_type_attachment,
+--     id_participant     integer
+--         constraint fk_participant
+--             references cls_organization,
+--     number_attachment  text,
+--     signing_date       date,
+--     page_count         integer,
+--     is_deleted         boolean,
+--     time_create        timestamp default CURRENT_TIMESTAMP not null,
+--     attachment_path    text,
+--     file_name          text,
+--     original_file_name text,
+--     file_extension     varchar(16),
+--     hash               text,
+--     file_size          integer,
+--     id_operator        integer
+--         constraint fk_operator
+--             references cls_employee
+-- );
+
+
 create table if not exists reg_rkk_file
 (
     id                 serial   not null
-        constraint reg_doc_rkk_file_pkey
+        constraint reg_rkk_file_pkey
+            primary key,
+    id_rkk             integer
+        constraint fk_doc_rkk
+            references doc_rkk,
+    page_count         integer,
+    is_deleted         boolean,
+    time_create        timestamp default CURRENT_TIMESTAMP not null,
+    attachment_path    text,
+    file_name          text,
+    original_file_name text,
+    file_extension     varchar(16),
+    hash               text,
+    file_size          integer,
+    id_operator        integer -- кто загрузил файл
+        constraint fk_operator
+            references cls_employee
+);
+
+create table if not exists reg_rkk_attachment
+(
+    id                 serial   not null
+        constraint reg_rkk_attachment_pkey
             primary key,
     id_rkk             integer
         constraint fk_doc_rkk
@@ -140,20 +196,11 @@ create table if not exists reg_rkk_file
             references cls_organization,
     number_attachment  text,
     signing_date       date,
-    page_count         integer,
     is_deleted         boolean,
-    time_create        timestamp default CURRENT_TIMESTAMP not null,
-    attachment_path    text,
-    file_name          text,
-    original_file_name text,
-    file_extension     varchar(16),
-    hash               text,
-    file_size          integer,
-    id_operator        integer
-        constraint fk_operator
-            references cls_employee
+    id_rkk_file             integer
+        constraint  fk_reg_rkk_file
+            references reg_rkk_file
 );
-
 
 
 

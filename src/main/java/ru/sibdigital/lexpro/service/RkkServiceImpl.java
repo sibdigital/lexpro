@@ -5,6 +5,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.sibdigital.lexpro.dto.DocRkkDto;
+import ru.sibdigital.lexpro.dto.RegRkkAttachmentDto;
 import ru.sibdigital.lexpro.model.*;
 
 import java.util.List;
@@ -52,15 +53,20 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
     @Override
     public DocRkk saveDocRkk(DocRkkDto docRkkDto) {
         DocRkk docRkk = null;
-        Long docRkkId = docRkkDto.getId();
-        if (docRkkId != null) {
-            docRkk = docRkkRepo.findById(docRkkId).orElse(null);
+        Long docRkkDtoId = docRkkDto.getId();
+        if (docRkkDtoId != null) {
+            docRkk = docRkkRepo.findById(docRkkDtoId).orElse(null);
             changeDocRkk(docRkk, docRkkDto);
         } else {
             docRkk = createDocRkk(docRkkDto);
         }
 
         docRkkRepo.save(docRkk);
+
+//        if (docRkkDtoId == null) {
+//            setDocRkkInAttachments(docRkkDto, docRkk);
+//        }
+
         return docRkk;
     }
 
@@ -111,49 +117,12 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
         return docRkk;
     }
 
-    private ClsNpaType getNpaTypeById(String npaTypeId) {
-        ClsNpaType clsNpaType = null;
-        if (npaTypeId != null) {
-            Long id = Long.parseLong(npaTypeId);
-            clsNpaType = clsNpaTypeRepo.findById(id).orElse(null);
+    private void setDocRkkInAttachments(DocRkkDto docRkkDto, DocRkk docRkk) {
+        List<RegRkkAttachmentDto> attachmentDtos = docRkkDto.getAttachments();
+        for (RegRkkAttachmentDto attachmentDto : attachmentDtos) {
+            RegRkkAttachment attachment = getRkkAttachmentById(attachmentDto.getId());
+            attachment.setDocRkk(docRkk);
+            regRkkAttachmentRepo.save(attachment);
         }
-        return clsNpaType;
     }
-
-    private ClsOrganization getOrganizationById(String clsOrganizationId) {
-        ClsOrganization clsOrganization = null;
-        if (clsOrganizationId != null) {
-            Long id = Long.parseLong(clsOrganizationId);
-            clsOrganization = clsOrganizationRepo.findById(id).orElse(null);
-        }
-        return clsOrganization;
-    }
-
-    private ClsEmployee getEmployeeById(String employeeId) {
-        ClsEmployee clsEmployee = null;
-        if (employeeId != null) {
-            Long id = Long.parseLong(employeeId);
-            clsEmployee = clsEmployeeRepo.findById(id).orElse(null);
-        }
-        return clsEmployee;
-    }
-
-    private ClsSession getSessionById(String sessionId) {
-        ClsSession clsSession = null;
-        if (sessionId != null) {
-            Long id = Long.parseLong(sessionId);
-            clsSession = clsSessionRepo.findById(id).orElse(null);
-        }
-        return clsSession;
-    }
-
-    private ClsRkkStatus getRkkStatusById(String statusId) {
-        ClsRkkStatus status = null;
-        if (statusId != null) {
-            Long id = Long.parseLong(statusId);
-            status = clsRkkStatusRepo.findById(id).orElse(null);
-        }
-        return status;
-    }
-
 }
