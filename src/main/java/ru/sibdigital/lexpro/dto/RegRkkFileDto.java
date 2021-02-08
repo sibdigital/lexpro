@@ -11,16 +11,14 @@ import java.util.Date;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class RegRkkAttachmentDto {
+public class RegRkkFileDto {
 
     private Long    id;
     private Long    docRkkId;
     private Long    groupId;
     private Long    typeId;
     private Long    participantId;
+    private Long    userId;
     private String  numberAttachment;
     private String  signingDate;
-    private Long    rkkFileId;
-    private Long    newFileId;
-
 }

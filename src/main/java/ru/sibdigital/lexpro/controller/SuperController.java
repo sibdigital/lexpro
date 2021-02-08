@@ -52,12 +52,6 @@ public class SuperController {
     @Autowired
     RegEmployeeUserRepo regEmployeeUserRepo;
 
-    @Autowired
-    RegRkkAttachmentRepo regRkkAttachmentRepo;
-
-    @Autowired
-    RkkAttachmentService rkkAttachmentService;
-
     protected CurrentUser getCurrentUser() {
         return (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }

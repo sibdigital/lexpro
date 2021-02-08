@@ -5,7 +5,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.sibdigital.lexpro.dto.DocRkkDto;
-import ru.sibdigital.lexpro.dto.RegRkkAttachmentDto;
 import ru.sibdigital.lexpro.model.*;
 
 import java.util.List;
@@ -63,10 +62,6 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
 
         docRkkRepo.save(docRkk);
 
-//        if (docRkkDtoId == null) {
-//            setDocRkkInAttachments(docRkkDto, docRkk);
-//        }
-
         return docRkk;
     }
 
@@ -115,14 +110,5 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
         docRkk.setPublicationDate(parseDateFromForm(docRkkDto.getPublicationDate()));
 
         return docRkk;
-    }
-
-    private void setDocRkkInAttachments(DocRkkDto docRkkDto, DocRkk docRkk) {
-        List<RegRkkAttachmentDto> attachmentDtos = docRkkDto.getAttachments();
-        for (RegRkkAttachmentDto attachmentDto : attachmentDtos) {
-            RegRkkAttachment attachment = getRkkAttachmentById(attachmentDto.getId());
-            attachment.setDocRkk(docRkk);
-            regRkkAttachmentRepo.save(attachment);
-        }
     }
 }

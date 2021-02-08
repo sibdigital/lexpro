@@ -6,11 +6,10 @@ import ru.sibdigital.lexpro.model.DocRkk;
 import ru.sibdigital.lexpro.model.RegRkkFile;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RegRkkFileRepo extends JpaRepository<RegRkkFile, Long> {
 
-    List<RegRkkFile> findRegRkkFileByDocRkkAndHash(DocRkk docRkk, String hash);
-
-    List<RegRkkFile> findRegRkkFileByDocRkk(DocRkk docRkk);
+    Optional<List<RegRkkFile>> findAllByDocRkkAndIsDeleted(DocRkk docRkk, Boolean isDeleted);
 }

@@ -45,7 +45,7 @@ function deleteRkkAttachment() {
                 let rkkParams = {
                     'docRkkId': docRkkValues.id
                 };
-                let attachmentData = webix.ajax().get('doc_rkk_attachments', rkkParams);
+                let attachmentData = webix.ajax().get('doc_rkk_files', rkkParams);
                 $$('attachmentDatatableId').parse(attachmentData);
             } else {
                 webix.message("Не удалось удалить вложение", 'error');
@@ -295,8 +295,8 @@ var docFileColumn = {
     id: 'docFileColumnId',
     header: 'Файл',
     template: function (obj) {
-        let imageClass = getImageClassByExtension(obj.file.fileExtension);
-        return '<div class="'+ imageClass + '"></div>  ' + obj.file.originalFileName;
+        let imageClass = getImageClassByExtension(obj.fileExtension);
+        return '<div class="'+ imageClass + '"></div>  ' + obj.originalFileName;
     },
     adjust: true,
     fillspace: true,
@@ -308,7 +308,7 @@ var attachmentTableColumns = [
     { id: 'participant',      header: 'Участник',          template: '#participant.name#',      adjust: true, sort: 'string'},
     { id: 'numberAttachment', header: 'Номер',                                                  adjust: true, sort: 'string'},
     { id: 'signingDate',      header: 'Дата подписания',   format: dateFormat,                  adjust: true, sort: 'date'},
-    { id: 'pageCount',        header: 'Количество страниц',template: '#file.pageCount#',        adjust: true, sort: 'string'},
+    { id: 'pageCount',        header: 'Количество страниц',template: '#pageCount#',        adjust: true, sort: 'string'},
     docFileColumn,
 ]
 

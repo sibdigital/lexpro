@@ -33,5 +33,4 @@ public class DocRkkDto {
     private String          agendaNumber;
     private String          headSignature;
     private String          publicationDate;
-    private List<RegRkkAttachmentDto> attachments;
 }

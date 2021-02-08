@@ -7,19 +7,18 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.sql.Timestamp;
 import java.util.Date;
-import java.util.Objects;
 
 @Entity
-@Table(name = "reg_rkk_file", schema = "public")
+@Table(name = "reg_rkk_file_version", schema = "public")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder(toBuilder = true)
-public class RegRkkFile {
+public class RegRkkFileVersion {
 
     @Id
     @Column(name = "id", nullable = false)
-    @SequenceGenerator(name = "REG_RKK_FILE_GEN", sequenceName = "reg_rkk_file_id_seq", allocationSize = 1, schema = "public")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "REG_RKK_FILE_GEN")
+    @SequenceGenerator(name = "REG_RKK_FILE_VERSION_GEN", sequenceName = "reg_rkk_file_version_id_seq", allocationSize = 1, schema = "public")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "REG_RKK_FILE_VERSION_GEN")
     private Long id;
     private Boolean isDeleted;
     private Timestamp timeCreate;
@@ -33,6 +32,12 @@ public class RegRkkFile {
 
     public Long getId() {return id;}
     public void setId(Long id) {this.id = id;}
+
+    @OneToOne
+    @JoinColumn(name = "id_version", referencedColumnName = "id")
+    private RegRkkFile rkkFile;
+    public RegRkkFile getRkkFile() {return rkkFile;}
+    public void setRkkFile(RegRkkFile rkkFile) {this.rkkFile = rkkFile;}
 
     @OneToOne
     @JoinColumn(name = "id_rkk", referencedColumnName = "id")
@@ -163,6 +168,26 @@ public class RegRkkFile {
     }
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public RegRkkFileVersion(RegRkkFile rkkFile) {
+        this.rkkFile = rkkFile; // id_version
+        this.docRkk = rkkFile.getDocRkk(); //id_rkk
+        this.group = rkkFile.getGroup();    //id_group
+        this.type = rkkFile.getType();  //id_type
+        this.participant = rkkFile.getParticipant(); //id_participant
+        this.numberAttachment = rkkFile.getNumberAttachment(); //number_attachment
+        this.signingDate = rkkFile.getSigningDate(); //signing_date
+        this.pageCount = rkkFile.getPageCount();    //page_count
+        this.isDeleted = rkkFile.getDeleted();  //is_deleted
+        this.timeCreate = rkkFile.getTimeCreate();  //time_create
+        this.attachmentPath = rkkFile.getAttachmentPath(); //attachment_path
+        this.fileName = rkkFile.getFileName();  //file_name
+        this.originalFileName = rkkFile.getOriginalFileName(); //original_file_name
+        this.fileExtension = rkkFile.getFileExtension();    //file_extension
+        this.hash = rkkFile.getHash();  //hash
+        this.fileSize = rkkFile.getFileSize(); // file_size
+        this.operator = rkkFile.getOperator();  // id_operator
     }
 
 }

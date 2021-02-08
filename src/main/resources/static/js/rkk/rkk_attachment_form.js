@@ -1,60 +1,70 @@
 function btnSaveRkkAttachmentActions() {
     if ($$('rkkAttachmentForm').validate()) {
-        let docRkkValues = $$('rkkForm').getValues();
+        if ($$('uploadlist').serialize().length > 0) {
+            $$('rkkFileUploaderId').send(function (response) {
+                if (response.cause == "Ошибка сохранения") {
+                    webix.message(response.cause, "error")
+                } else {
+                    webix.message(response.cause + ": " + response.sname, "success");
+                    $$('window').close();
+                    $$('attachmentDatatableId').clearAll();
 
-        let params = $$('rkkAttachmentForm').getValues();
-        params.docRkkId = docRkkValues.id;
+                    let docRkkValues = $$('rkkForm').getValues();
+                    let params = {'docRkkId': docRkkValues.id};
+                    let attachmentData = webix.ajax().get('doc_rkk_files', params);
+                    $$('attachmentDatatableId').parse(attachmentData);
+                }
+            })
+        } else {
+            let docRkkValues = $$('rkkForm').getValues();
+            let params = $$('rkkAttachmentForm').getValues();
+            params.docRkkId = docRkkValues.id;
+            params.userId   = USER.id;
 
-        webix.ajax().headers({
-            'Content-Type': 'application/json'
-        }).post('/save_rkk_attachment',
-            params).then(function (data) {
-            if (data.text() === 'Вложение сохранено') {
-                webix.message({text: data.text(), type: 'success'});
+            webix.ajax().headers({
+                'Content-Type': 'application/json'
+            }).post('/edit_rkk_file',
+                params).then(function (data) {
+                if (data.text() === 'Вложение сохранено') {
+                    webix.message({text: data.text(), type: 'success'});
 
-                $$('window').close();
-                $$('attachmentDatatableId').clearAll();
-                let attachmentData = webix.ajax().get('doc_rkk_attachments', params);
-                $$('attachmentDatatableId').parse(attachmentData);
-            }
-        });
+                    $$('window').close();
+                    $$('attachmentDatatableId').clearAll();
+                    let attachmentData = webix.ajax().get('doc_rkk_files', params);
+                    $$('attachmentDatatableId').parse(attachmentData);
+                }
+            });
+        }
     }
 }
 
 
 var rkkFileUploader = {
-    id: 'upload',
+    id: 'rkkFileUploaderId',
     view: 'uploader',
     css: 'transparentBtnStyle',
     type: "icon",
     icon: "fas fa-paperclip",
-    upload: 'upload_rkk_files',
+    upload: 'save_rkk_file',
     width:30,
     required: true,
-    autosend: true,
+    autosend: false,
+    link: 'uploadlist',
     accept: 'application/pdf, application/msword',
     formData: function () {
-        let params = $$('rkkForm').getValues();
-        if (params.id) {
-            return {
-                docRkkId: params.id
-            };
-        }
+        let docRkkValues = $$('rkkForm').getValues();
+        let params = $$('rkkAttachmentForm').getValues();
+        params.docRkkId = docRkkValues.id;
+        params.userId   = USER.id;
+        params.signingDate = webix.i18n.parseFormatStr($$('signingDateId').getValue());
+
+        return params;
     },
     multiple: false,
     on: {
-        onFileUpload: (response) => {
-            if (response.cause == "Ошибка сохранения") {
-                webix.message(response.cause, "error")
-            } else {
-                webix.message(response.cause + ": " + response.sname, "success")
-                $$('rkkAttachmentForm').setValues({
-                    originalFileName: response.sname,
-                    pageCount: response.pageCount,
-                    newFileId: response.fileId,
-                }, true);
-            }
-        }
+        onAfterFileAdd: function () {
+            $$('uploadlistLabelId').show();
+        },
     }
 }
 
@@ -103,7 +113,7 @@ var rkkAttachmentElements = [
     {
         cols: [
             { view: 'text', label: '№ документа', labelPosition: 'top', name: 'numberAttachment',},
-            { view: 'datepicker', label: 'Дата подписания', labelPosition: 'top', name: 'signingDate', timepicker: false,},
+            { view: 'datepicker', id: 'signingDateId', label: 'Дата подписания', labelPosition: 'top', name: 'signingDate', timepicker: false,},
             { view: 'text', label: 'Кол-во стр.', labelPosition: 'top', name: 'pageCount', readonly:true, maxWidth:100,},
         ]
     },
@@ -111,6 +121,12 @@ var rkkAttachmentElements = [
         cols: [
             { view: 'text', label: 'Файл:', labelPosition: 'left', name: 'originalFileName', readonly:true,},
             rkkFileUploader,
+        ]
+    },
+    {
+        cols: [
+            { view: 'label', id: 'uploadlistLabelId', label: "Новая версия файла:", hidden: true},
+            { view: 'list', id: 'uploadlist', type: 'uploader', autoheight: true, borderless: true, adjust: true, fillspace: true, },
         ]
     },
     {},

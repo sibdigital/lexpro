@@ -56,7 +56,7 @@ public class SuperServiceImpl implements SuperService{
     FileService fileService;
 
     @Autowired
-    RegRkkAttachmentRepo regRkkAttachmentRepo;
+    RegRkkFileVersionRepo regRkkFileVersionRepo;
 
     @Override
     public Date parseDateFromForm(String stringDate) {
@@ -149,11 +149,4 @@ public class SuperServiceImpl implements SuperService{
         return status;
     }
 
-    protected RegRkkAttachment getRkkAttachmentById(Long id) {
-        RegRkkAttachment rkkAttachment = null;
-        if (id != null) {
-            rkkAttachment = regRkkAttachmentRepo.findById(id).orElse(null);
-        }
-        return rkkAttachment;
-    }
 }
