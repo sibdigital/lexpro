@@ -28,8 +28,10 @@ public class RkkAttachmentController extends SuperController {
 
     @GetMapping("/doc_rkk_attachments")
     public @ResponseBody List<RegRkkAttachment> getRegDocFiles(@RequestParam(value = "docRkkId") Long docRkkId) {
+        Boolean isDeleted = false;
+
         DocRkk docRkk = docRkkRepo.findById(docRkkId).orElse(null);
-        return regRkkAttachmentRepo.findAllByDocRkk(docRkk).orElse(null);
+        return regRkkAttachmentRepo.findAllByDocRkkAndIsDeleted(docRkk, isDeleted).orElse(null);
     }
 
     @GetMapping("/participant_attachment_list")
@@ -63,5 +65,16 @@ public class RkkAttachmentController extends SuperController {
     public @ResponseBody String saveRkkAttachment(@RequestBody RegRkkAttachmentDto rkkAttachmentDto) {
         RegRkkAttachment rkkAttachment = rkkAttachmentService.saveRkkAttachment(rkkAttachmentDto);
         return "Вложение сохранено";
+    }
+
+    @PostMapping("/delete_rkk_attachment")
+    public @ResponseBody RegRkkAttachmentDto deleteEmployee(@RequestBody RegRkkAttachmentDto rkkAttachmentDto) {
+        try{
+            rkkAttachmentService.deleteRkkAttachment(rkkAttachmentDto);
+        }catch (Exception e){
+            log.error(e.getMessage(), e);
+            return null;
+        }
+        return rkkAttachmentDto;
     }
 }

@@ -12,4 +12,5 @@ public interface RkkAttachmentService {
     List<ClsGroupAttachment> getGroupAttachmentList();
     List<ClsTypeAttachment> getTypeAttachmentList();
     RegRkkAttachment saveRkkAttachment(RegRkkAttachmentDto rkkAttachmentDto);
+    void deleteRkkAttachment(RegRkkAttachmentDto rkkAttachmentDto);
 }

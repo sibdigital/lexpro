@@ -21,14 +21,15 @@ function btnSaveRkkAttachmentActions() {
     }
 }
 
+
 var rkkFileUploader = {
     id: 'upload',
     view: 'uploader',
     css: 'transparentBtnStyle',
     type: "icon",
-    icon: "mdi mdi-download",
-    label: 'Загрузить',
+    icon: "fas fa-paperclip",
     upload: 'upload_rkk_files',
+    width:30,
     required: true,
     autosend: true,
     accept: 'application/pdf, application/msword',
@@ -40,7 +41,7 @@ var rkkFileUploader = {
             };
         }
     },
-    multiple: true,
+    multiple: false,
     on: {
         onFileUpload: (response) => {
             if (response.cause == "Ошибка сохранения") {
@@ -55,6 +56,15 @@ var rkkFileUploader = {
             }
         }
     }
+}
+
+var rkkFileDownloader = {
+    id: 'upload',
+    view: 'icon',
+    css: 'transparentBtnStyle',
+    // type: "icon",
+    icon: "fas fa-download",
+    width:30,
 }
 
 var btnRkkAttachmentPanel = {
@@ -84,14 +94,25 @@ var btnRkkAttachmentPanel = {
 }
 
 var rkkAttachmentElements = [
-    { view: 'text', label: '№ документа', labelPosition: 'top', name: 'numberAttachment',},
-    { view: 'datepicker', label: 'Дата подписания', labelPosition: 'top', name: 'signingDate', timepicker: false,},
     { view: 'richselect', label: 'Участник', labelPosition: 'top', name: 'participantId', options: 'participant_attachment_list'},
-    { view: 'richselect', label: 'Группа', labelPosition: 'top', name: 'groupId', options: 'group_attachement_list'},
-    { view: 'richselect', label: 'Тип документа', labelPosition: 'top', name: 'typeId', options: 'type_attachement_list'},
-    { view: 'text', label: 'Файл', labelPosition: 'top', name: 'originalFileName', readonly:true},
-    { view: 'text', label: 'Кол-во стр.', labelPosition: 'top', name: 'pageCount', readonly:true},
-    rkkFileUploader,
+    { cols: [
+            { view: 'richselect', label: 'Группа', labelPosition: 'top', name: 'groupId', options: 'group_attachement_list'},
+            { view: 'richselect', label: 'Тип документа', labelPosition: 'top', name: 'typeId', options: 'type_attachement_list'},
+        ]
+    },
+    {
+        cols: [
+            { view: 'text', label: '№ документа', labelPosition: 'top', name: 'numberAttachment',},
+            { view: 'datepicker', label: 'Дата подписания', labelPosition: 'top', name: 'signingDate', timepicker: false,},
+            { view: 'text', label: 'Кол-во стр.', labelPosition: 'top', name: 'pageCount', readonly:true, maxWidth:100,},
+        ]
+    },
+    {
+        cols: [
+            { view: 'text', label: 'Файл:', labelPosition: 'left', name: 'originalFileName', readonly:true,},
+            rkkFileUploader,
+        ]
+    },
     {},
     btnRkkAttachmentPanel,
 ]

@@ -40,6 +40,16 @@ public class RkkAttachmentServiceImpl extends SuperServiceImpl implements RkkAtt
         return regRkkAttachment;
     }
 
+    @Override
+    public void deleteRkkAttachment(RegRkkAttachmentDto rkkAttachmentDto) {
+        Long rkkAttachmentId = rkkAttachmentDto.getId();
+        if (rkkAttachmentId != null) {
+            RegRkkAttachment regRkkAttachment = regRkkAttachmentRepo.findById(rkkAttachmentId).orElse(null);
+            regRkkAttachment.setDeleted(true);
+            regRkkAttachmentRepo.save(regRkkAttachment);
+        }
+    }
+
     private RegRkkAttachment changeRegRkkAttachment(RegRkkAttachment regRkkAttachment, RegRkkAttachmentDto rkkAttachmentDto) {
         // NumberAttachment
         regRkkAttachment.setNumberAttachment(rkkAttachmentDto.getNumberAttachment());
@@ -92,6 +102,7 @@ public class RkkAttachmentServiceImpl extends SuperServiceImpl implements RkkAtt
                                         .group(groupAttachment)
                                         .participant(participant)
                                         .type(typeAttachment)
+                                        .isDeleted(false)
                                         .build();
 
         return rkkAttachment;

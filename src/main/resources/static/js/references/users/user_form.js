@@ -42,7 +42,7 @@ var userRoleTable = {
             $$('mailingForm').show();
         }
     },
-},
+}
 
 const rkkForm = {
     id: 'rkkFormId',

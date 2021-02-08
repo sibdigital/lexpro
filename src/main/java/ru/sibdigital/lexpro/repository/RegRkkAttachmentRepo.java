@@ -13,4 +13,5 @@ public interface RegRkkAttachmentRepo extends JpaRepository<RegRkkAttachment, Lo
 
 
     Optional<List<RegRkkAttachment>> findAllByDocRkk(DocRkk docRkk);
+    Optional<List<RegRkkAttachment>> findAllByDocRkkAndIsDeleted(DocRkk docRkk, Boolean isDeleted);
 }

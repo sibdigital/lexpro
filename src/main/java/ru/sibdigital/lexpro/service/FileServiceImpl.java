@@ -5,7 +5,9 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.poi.hslf.usermodel.HSLFSlideShow;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.HWPFOldDocument;
 import org.apache.poi.ooxml.POIXMLDocument;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -89,10 +91,10 @@ public class FileServiceImpl extends SuperServiceImpl implements FileService{
                 pptxSlideShow.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
+        } catch (Exception e) {
+            log.error(e.getMessage()); // Если doc формата 95 и ниже, то POI не может его прочитать
         }
-
-
 
         return pageCount;
     }

@@ -6,7 +6,7 @@ function changeRkkFilesDatesFormat(obj) {
     }
 }
 
-function btnSaveRkkActions() {
+function btnSaveAndCloseRkkActions() {
     if ($$('rkkForm').validate()) {
         let params = $$('rkkForm').getValues();
         params.attachments = $$('attachmentDatatableId').serialize();
@@ -15,15 +15,88 @@ function btnSaveRkkActions() {
             'Content-Type': 'application/json'
         }).post('/save_rkk',
             params).then(function (data) {
-                if (data.text() === 'РКК сохранена') {
-                    webix.message({text: data.text(), type: 'success'});
-
-                    webix.ui(rkkList, $$('rkkFormId'));
-                    $$('rkk_table').clearAll();
-                    $$('rkk_table').load('doc_rkks');
-                }
-            });
+            if (data.text() === 'РКК сохранена') {
+                webix.message({text: data.text(), type: 'success'});
+                webix.ui(rkkList, $$('rkkFormId'));
+                $$('rkk_table').clearAll();
+                $$('rkk_table').load('doc_rkks');
+            }
+        });
     }
+}
+
+function deleteRkkAttachment() {
+    if (!$$("attachmentDatatableId").getSelectedId()) {
+        webix.message("Не выбрано вложение!", "error");
+        return;
+    }
+
+    let params = $$('attachmentDatatableId').getSelectedId();
+    $$('attachmentDatatableId').remove($$('attachmentDatatableId').getSelectedId());
+    webix.ajax()
+        .headers({'Content-type': 'application/json'})
+        .post('delete_rkk_attachment', JSON.stringify(params))
+        .then(function (data) {
+            if (data !== null) {
+                webix.message("Вложение удалено", 'success');
+                $$('attachmentDatatableId').clearAll();
+
+                let docRkkValues = $$('rkkForm').getValues();
+                let rkkParams = {
+                    'docRkkId': docRkkValues.id
+                };
+                let attachmentData = webix.ajax().get('doc_rkk_attachments', rkkParams);
+                $$('attachmentDatatableId').parse(attachmentData);
+            } else {
+                webix.message("Не удалось удалить вложение", 'error');
+            }
+        });
+}
+
+function checkIsRkkNewWithoutId() {
+    let isNew = true;
+    let values = $$('rkkForm').getValues();
+    if (values.id) {
+        isNew = false;
+    }
+
+    return isNew;
+}
+
+var btnRkkPanel = {
+    cols: [
+        {},
+        // {
+        //     view: 'button',
+        //     align: 'right',
+        //     maxWidth: 200,
+        //     css: 'webix_primary',
+        //     value: 'Сохранить и закрыть',
+        //     click: function () {
+        //         btnSaveAndCloseRkkActions();
+        //     }
+        // },
+        {
+            view: 'button',
+            align: 'right',
+            maxWidth: 150,
+            css: 'webix_primary',
+            value: 'Сохранить',
+            click: function () {
+                btnSaveAndCloseRkkActions();
+            }
+        },
+        {
+            view: 'button',
+            align: 'right',
+            maxWidth: 150,
+            css: 'webix_secondary',
+            value: 'Отмена',
+            click: function () {
+                webix.ui(rkkList, $$('rkkFormId'));
+            }
+        }
+    ]
 }
 
 ///////////////////////////////////////// MAIN TAB ////////////////////////////////////////////////////
@@ -69,7 +142,6 @@ var mainRkkTab = {
                     view: 'textarea',
                     label: 'Законодательная основа',
                     labelPosition: 'top',
-                    required: true,
                     height: 150,
                 },]
         },
@@ -82,7 +154,6 @@ var mainRkkTab = {
                     label: 'Дата регистрации',
                     labelPosition: 'top',
                     timepicker: false,
-                    required: true,
                 },
                 {
                     id: 'introductionDate',
@@ -91,7 +162,6 @@ var mainRkkTab = {
                     label: 'Дата внесения',
                     labelPosition: 'top',
                     timepicker: false,
-                    required: true,
                 },
             ],
         },
@@ -103,7 +173,6 @@ var mainRkkTab = {
                     view: 'richselect',
                     label: 'Субъект права законодательной инициативы',
                     labelPosition: 'top',
-                    required: true,
                     options: 'law_subject_list',
                 },
                 {
@@ -112,7 +181,6 @@ var mainRkkTab = {
                     view: 'richselect',
                     label: 'Докладчик',
                     labelPosition: 'top',
-                    required: true,
                     options: 'responsible_employee_list',
                 },
             ]
@@ -125,7 +193,6 @@ var mainRkkTab = {
                     view: 'richselect',
                     label: 'Ответственный комитет',
                     labelPosition: 'top',
-                    required: true,
                     options: 'responsible_organization_list',
                 },
                 {
@@ -134,7 +201,6 @@ var mainRkkTab = {
                     view: 'richselect',
                     label: 'Ответственное лицо',
                     labelPosition: 'top',
-                    required: true,
                     options: 'responsible_employee_list',
                 },
             ]
@@ -219,17 +285,18 @@ var mainRkkTab = {
                 },
             ]
         },
+        {},
+        btnRkkPanel
     ]
 }
 
 //////////////////////////////////// FILE UPLOADER TAB/////////////////////////////////////////////////
-
 var docFileColumn = {
     id: 'docFileColumnId',
     header: 'Файл',
     template: function (obj) {
         let imageClass = getImageClassByExtension(obj.file.fileExtension);
-        return '<div class="'+ imageClass + '"></div>' + obj.file.originalFileName;
+        return '<div class="'+ imageClass + '"></div>  ' + obj.file.originalFileName;
     },
     adjust: true,
     fillspace: true,
@@ -248,7 +315,6 @@ var attachmentTableColumns = [
 var attachmentTable = {
     id: 'attachmentDatatableId',
     view: 'datatable',
-    autoConfig: true,
     select: 'row',
     resizeColumn:true,
     readonly: true,
@@ -317,57 +383,64 @@ var attachmentTable = {
 }
 
 var btnAddAttachmentRkk = {
-    id: 'tnAddAttachment',
+    id: 'btnAddAttachment',
     view: 'button',
-    css: 'webix_primary',
-    value: 'Добавить',
-    maxWidth: 300,
+    type: 'iconTop',
+    icon: 'fas fa-file-medical',
+    label: 'Добавить',
+    width: '100',
+    align: 'left',
     click: function () {
-        // if (checkIsRkkNewWithoutId()) {
-        //     webix.confirm({
-        //         title:"Сохранить новую РКК",
-        //         type:"confirm-warning",
-        //         ok:"Да", cancel:"Нет",
-        //         text:"Для прикрепления вложений в новую РКК"
-        //     }).then(function(){
-        //         webix.ajax()
-        //             .headers({'Content-type': 'application/json'})
-        //             .post('delete_file', JSON.stringify(param))
-        //             .then(function (data) {
-        //                 if (data !== null) {
-        //                     $$("docs_grid").remove($$("docs_grid").getSelectedId());
-        //                     webix.message("Файл удалён", 'success');
-        //                 } else {
-        //                     webix.message("Не удалось удалить файл", 'error');
-        //                 }
-        //             });
-        //     })
-        //
-        // }
-
-        let window = webix.ui({
-            view: 'window',
-            id: 'window',
-            head: 'Новое вложение',
-            close: true,
-            width: 1000,
-            height: 800,
-            position: 'center',
-            modal: true,
-            body: rkkAttachmentForm,
-            on: {
-                'onShow': function () {
+        if (checkIsRkkNewWithoutId()) {
+            webix.alert({
+                title: "Нельзя добавить вложение в несохраненную РКК",
+                text:"Для добавления вложений в новую РКК предварительно сохраните ее."
+            })
+        } else {
+            let window = webix.ui({
+                view: 'window',
+                id: 'window',
+                head: 'Новое вложение',
+                close: true,
+                width: 1000,
+                height: 800,
+                position: 'center',
+                modal: true,
+                body: rkkAttachmentForm,
+                on: {
+                    'onShow': function () {
+                    }
                 }
-            }
-        });
+            });
 
-        window.show();
+            window.show();
+        }
+    }
+}
+
+var btnDeleteAttachmentRkk = {
+    id: 'btnDeleteAttachment',
+    view: 'button',
+    type: 'iconTop',
+    icon: 'fas fa-trash-alt',
+    label: 'Удалить',
+    width: '100',
+    align: 'right',
+    click: function () {
+        webix.confirm('Вы действительно хотите удалить выбранную запись?')
+            .then(
+                function () {
+                    deleteRkkAttachment();
+                });
     }
 }
 
 var topAttachmentPanel = {
+    height: 50,
     cols: [
         btnAddAttachmentRkk,
+        {},
+        btnDeleteAttachmentRkk
     ]
 }
 
@@ -375,14 +448,17 @@ var attachmentTab = {
     id: 'attachmentTabId',
     rows: [
         topAttachmentPanel,
-        attachmentTable
+        attachmentTable,
     ]
 }
 
 ///////////////////////////////////////// SPECIAL MARK TAB ////////////////////////////////////////////
 var specialMarksTab = {
     id: 'specialMarksTabId',
-    rows: []
+    rows: [
+        {},
+        btnRkkPanel
+    ]
 }
 
 ////////////////////////////////////// HISTORY OF CHANGES /////////////////////////////////////////////
@@ -429,32 +505,6 @@ var rkkFormTabbar = {
     ]
 }
 
-var btnRkkPanel = {
-    cols: [
-        {},
-        {
-            view: 'button',
-            align: 'right',
-            maxWidth: 200,
-            css: 'webix_primary',
-            value: 'Сохранить',
-            click: function () {
-                btnSaveRkkActions();
-            }
-        },
-        {
-            view: 'button',
-            align: 'right',
-            maxWidth: 200,
-            css: 'webix_secondary',
-            value: 'Отмена',
-            click: function () {
-                webix.ui(rkkList, $$('rkkFormId'));
-            }
-        }
-    ]
-}
-
 const rkkForm = {
     id: 'rkkFormId',
     view: 'scrollview',
@@ -468,8 +518,8 @@ const rkkForm = {
                 elements: [
                     rkkFormTabbar,
                     rkkTabview,
-                    {},
-                    btnRkkPanel,
+                    // {},
+                    // btnRkkPanel,
                 ]
             },
         ]
