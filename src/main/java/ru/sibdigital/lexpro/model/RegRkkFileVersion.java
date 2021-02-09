@@ -189,6 +189,5 @@ public class RegRkkFileVersion {
         this.fileSize = rkkFile.getFileSize(); // file_size
         this.operator = rkkFile.getOperator();  // id_operator
     }
-
 }
 

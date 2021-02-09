@@ -65,6 +65,12 @@ function openRkkTab(id) {
     let params = {'docRkkId': data.id};
     let attachmentData = webix.ajax().get('doc_rkk_files', params);
     $$('attachmentDatatableId').parse(attachmentData);
+
+    let mailingData = webix.ajax().get('rkk_mailing_dtos', params);
+    $$('mailingRkkTableId').parse(mailingData);
+
+    let visaData = webix.ajax().get('rkk_visa_dtos', params);
+    $$('visaRkkTableId').parse(visaData);
 }
 
 var includedInAgentaColumn = {

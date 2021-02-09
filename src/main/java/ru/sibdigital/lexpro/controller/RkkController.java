@@ -6,7 +6,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import ru.sibdigital.lexpro.dto.DocRkkDto;
 import ru.sibdigital.lexpro.dto.KeyValue;
+import ru.sibdigital.lexpro.dto.RegRkkMailingDto;
+import ru.sibdigital.lexpro.dto.RegRkkVisaDto;
 import ru.sibdigital.lexpro.model.DocRkk;
+import ru.sibdigital.lexpro.model.RegRkkFile;
+import ru.sibdigital.lexpro.model.RegRkkMailing;
+import ru.sibdigital.lexpro.model.RegRkkVisa;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
@@ -42,10 +47,41 @@ public class RkkController extends SuperController {
         return docRkkRepo.findById(idDocRkk).orElse(null);
     }
 
+    @GetMapping("/rkk_visa_dtos")
+    public @ResponseBody
+    List<RegRkkVisaDto> getRkkVisas(@RequestParam(value = "docRkkId") Long docRkkId) {
+        DocRkk docRkk = docRkkRepo.findById(docRkkId).orElse(null);
+        List<RegRkkVisa> visas = regRkkVisaRepo.findAllByDocRkk(docRkk).orElse(null);
+        List<RegRkkVisaDto> list = visas.stream()
+                                    .map(ctr -> new RegRkkVisaDto(ctr))
+                                    .collect(Collectors.toList());
+        return list;
+    }
+
+    @GetMapping("/rkk_mailing_dtos")
+    public @ResponseBody
+    List<RegRkkMailingDto> getRkkMailing(@RequestParam(value = "docRkkId") Long docRkkId) {
+        DocRkk docRkk = docRkkRepo.findById(docRkkId).orElse(null);
+        List<RegRkkMailing> mailings = regRkkMailingRepo.findAllByDocRkk(docRkk).orElse(null);
+        List<RegRkkMailingDto> list = mailings.stream()
+                                        .map(ctr -> new RegRkkMailingDto(ctr))
+                                        .collect(Collectors.toList());
+        return list;
+    }
+
     @GetMapping("/status_list")
     public @ResponseBody
     List<KeyValue> getStatusListForRichselect() {
         List<KeyValue> list = rkkService.getRkkStatusList().stream()
+                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
+                .collect(Collectors.toList());
+        return list;
+    }
+
+    @GetMapping("/stage_list")
+    public @ResponseBody
+    List<KeyValue> getStageListForRichselect() {
+        List<KeyValue> list = rkkService.getStageList().stream()
                 .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
                 .collect(Collectors.toList());
         return list;

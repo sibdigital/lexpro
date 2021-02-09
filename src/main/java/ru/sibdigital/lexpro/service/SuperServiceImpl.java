@@ -58,6 +58,15 @@ public class SuperServiceImpl implements SuperService{
     @Autowired
     RegRkkFileVersionRepo regRkkFileVersionRepo;
 
+    @Autowired
+    ClsRkkStageRepo clsRkkStageRepo;
+
+    @Autowired
+    RegRkkMailingRepo regRkkMailingRepo;
+
+    @Autowired
+    RegRkkVisaRepo regRkkVisaRepo;
+
     @Override
     public Date parseDateFromForm(String stringDate) {
         Date date = null;

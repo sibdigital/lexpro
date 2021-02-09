@@ -13,7 +13,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DocRkkDto {
-
     private Long            id;
     private String          rkkNumber;
     private String          npaName;
@@ -33,4 +32,6 @@ public class DocRkkDto {
     private String          agendaNumber;
     private String          headSignature;
     private String          publicationDate;
+    private List<RegRkkMailingDto> mailings;
+    private List<RegRkkVisaDto>    visas;
 }

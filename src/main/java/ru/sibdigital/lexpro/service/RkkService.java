@@ -20,6 +20,8 @@ public interface RkkService {
 
     List<ClsSession> getSessionList();
 
+    List<ClsRkkStage> getStageList();
+
     DocRkk saveDocRkk(DocRkkDto docRkkDto);
 
 }

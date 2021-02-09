@@ -5,11 +5,18 @@ function changeRkkFilesDatesFormat(obj) {
         obj.signingDate = convertToDate(obj.signingDate);
     }
 }
+function changeRkkSpecialMarkDatesFormat(obj) {
+    if (obj.date != null && !(obj.date instanceof Date)) {
+        obj.date = convertToDate(obj.date);
+    }
+}
+
 
 function btnSaveAndCloseRkkActions() {
     if ($$('rkkForm').validate()) {
         let params = $$('rkkForm').getValues();
-        params.attachments = $$('attachmentDatatableId').serialize();
+        params.mailings     = $$('mailingRkkTableId').serialize();
+        params.visas        = $$('visaRkkTableId').serialize();
 
         webix.ajax().headers({
             'Content-Type': 'application/json'
@@ -453,10 +460,110 @@ var attachmentTab = {
 }
 
 ///////////////////////////////////////// SPECIAL MARK TAB ////////////////////////////////////////////
+var mailingRkkTableColumns = [
+    { id: 'organizationId', header: 'Кому',       editor: "richselect", adjust: true, sort: 'string', options: 'participant_attachment_list', fillspace: 3 },
+    { id: 'date',         header: 'Дата',       editor: "editdate",   adjust: true, sort: 'date', format: dateFormat, fillspace: 1 },
+    { id: 'note',         header: 'Примечание', editor:"text",        adjust: true, sort: 'string', fillspace: true, fillspace: 3},
+]
+
+var mailingRkkTable = {
+    id: 'mailingRkkTableId',
+    view: 'datatable',
+    select: 'row',
+    resizeColumn:true,
+    editable:true,
+    editaction:"dblclick",
+    columns: mailingRkkTableColumns,
+}
+
+var mailingRkkBtns = {
+    view:"toolbar",
+    cols:[
+        { gravity:2 },
+        {
+            view: "button",
+            align: 'left',
+            maxWidth: 150,
+            // css: 'webix_primary',
+            value: 'Добавить',
+            click: function () {$$('mailingRkkTableId').add({});}
+        },
+        {
+            view: 'button',
+            align: 'right',
+            maxWidth: 150,
+            // css: 'webix_primary',
+            value: 'Удалить',
+            click: function () { $$("mailingRkkTableId").remove($$("mailingRkkTableId").getSelectedId());}
+        }
+    ]
+}
+
+var visaRkkTableColumns = [
+    { id: 'stageId', header: 'Стадия',     editor: "richselect", adjust: true, sort: 'string', options: 'stage_list', fillspace: 3},
+    { id: 'date',  header: 'Дата',       editor: "editdate",   adjust: true, sort: 'date',   format: dateFormat, fillspace: 1},
+    { id: 'note',  header: 'Примечание', editor: "text",       adjust: true, sort: 'string', fillspace: 3},
+]
+
+var visaRkkTable = {
+    id: 'visaRkkTableId',
+    view: 'datatable',
+    select: 'row',
+    resizeColumn:true,
+    editable:true,
+    editaction:"dblclick",
+    columns: visaRkkTableColumns,
+}
+
+var visaRkkBtns = {
+    cols:[
+        { gravity:2 },
+        {
+            view: "button",
+            align: 'left',
+            maxWidth: 150,
+            // css: 'webix_primary',
+            value: 'Добавить',
+            click: function () {$$('visaRkkTableId').add({});}
+        },
+        {
+            view: 'button',
+            align: 'right',
+            maxWidth: 150,
+            // css: 'webix_primary',
+            value: 'Удалить',
+            click: function () { $$("visaRkkTableId").remove($$("visaRkkTableId").getSelectedId());}
+        }
+    ]
+}
+
 var specialMarksTab = {
     id: 'specialMarksTabId',
     rows: [
-        {},
+        {
+            view: "segmented", type: "bottom", multiview: true, options: [
+                {value: "Рассылки", id: 'rkkMailing'},
+                {value: "Виза",     id: 'rkkVisa'},],
+        },
+        {
+            id: 'views',
+            cells: [
+                {
+                    view: 'form', id: 'rkkMailing',
+                    rows: [
+                        mailingRkkTable,
+                        mailingRkkBtns,
+                    ]
+                },
+                {
+                    view: 'form', id: 'rkkVisa',
+                    rows: [
+                        visaRkkTable,
+                        visaRkkBtns,
+                    ]
+                },
+            ]
+        },
         btnRkkPanel
     ]
 }

@@ -4,6 +4,7 @@ public class KeyValue {
     private String type;
     private Long id;
     private String value;
+    private String name;
 
     public KeyValue(){
 
@@ -13,6 +14,7 @@ public class KeyValue {
         this.type = type;
         this.id = id;
         this.value = value;
+        this.name = value;
     }
 
     public String getType() {
@@ -37,5 +39,13 @@ public class KeyValue {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }
