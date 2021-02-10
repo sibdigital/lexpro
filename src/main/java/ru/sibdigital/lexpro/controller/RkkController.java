@@ -50,22 +50,30 @@ public class RkkController extends SuperController {
     @GetMapping("/rkk_visa_dtos")
     public @ResponseBody
     List<RegRkkVisaDto> getRkkVisas(@RequestParam(value = "docRkkId") Long docRkkId) {
+        List<RegRkkVisaDto> list = null;
+
         DocRkk docRkk = docRkkRepo.findById(docRkkId).orElse(null);
         List<RegRkkVisa> visas = regRkkVisaRepo.findAllByDocRkk(docRkk).orElse(null);
-        List<RegRkkVisaDto> list = visas.stream()
-                                    .map(ctr -> new RegRkkVisaDto(ctr))
-                                    .collect(Collectors.toList());
+        if (visas != null) {
+            list = visas.stream()
+                    .map(ctr -> new RegRkkVisaDto(ctr))
+                    .collect(Collectors.toList());
+        }
         return list;
     }
 
     @GetMapping("/rkk_mailing_dtos")
     public @ResponseBody
     List<RegRkkMailingDto> getRkkMailing(@RequestParam(value = "docRkkId") Long docRkkId) {
+        List<RegRkkMailingDto> list = null;
+
         DocRkk docRkk = docRkkRepo.findById(docRkkId).orElse(null);
         List<RegRkkMailing> mailings = regRkkMailingRepo.findAllByDocRkk(docRkk).orElse(null);
-        List<RegRkkMailingDto> list = mailings.stream()
-                                        .map(ctr -> new RegRkkMailingDto(ctr))
-                                        .collect(Collectors.toList());
+        if (mailings != null) {
+            list = mailings.stream()
+                    .map(ctr -> new RegRkkMailingDto(ctr))
+                    .collect(Collectors.toList());
+        }
         return list;
     }
 

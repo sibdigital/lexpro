@@ -88,7 +88,7 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
     private void deleteRemovedMailings(DocRkkDto docRkkDto, DocRkk docRkk) {
         Set<Long> set = getPrevMailingIdSet(docRkk);
         Set<Long> currentMailingIdSet = getCurrentMailingIdSet(docRkkDto);
-        if (set.removeAll(currentMailingIdSet)) {
+        if (set != null && set.removeAll(currentMailingIdSet)) {
             regRkkMailingRepo.deleteBySetId(set);
         }
     }
@@ -96,7 +96,7 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
     private void deleteRemovedVisas(DocRkkDto docRkkDto, DocRkk docRkk) {
         Set<Long> set = getPrevVisaIdSet(docRkk);
         Set<Long> currentVisaIdSet = getCurrentVisaIdSet(docRkkDto);
-        if (set.removeAll(currentVisaIdSet)) {
+        if (set != null && set.removeAll(currentVisaIdSet)) {
             regRkkVisaRepo.deleteBySetId(set);
         }
     }
