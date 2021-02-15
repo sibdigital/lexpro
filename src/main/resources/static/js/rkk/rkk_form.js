@@ -25,8 +25,8 @@ function btnSaveAndCloseRkkActions() {
             if (data.text() === 'РКК сохранена') {
                 webix.message({text: data.text(), type: 'success'});
                 webix.ui(rkkList, $$('rkkFormId'));
-                $$('rkk_table').clearAll();
-                $$('rkk_table').load('doc_rkks');
+                $$('rkkTableId').clearAll();
+                $$('rkkTableId').load('doc_rkks');
             }
         });
     }

@@ -8,7 +8,9 @@ import java.util.List;
 
 public interface RkkService {
 
-    Page<DocRkk> findAllDocRkk(int page, int size);
+    Page<DocRkk> findActiveDocRkks(int page, int size);
+
+    Page<DocRkk> findDeletedDocRkks(int page, int size);
 
     List<ClsRkkStatus> getRkkStatusList();
 

@@ -20,8 +20,13 @@ import java.util.stream.StreamSupport;
 public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
 
     @Override
-    public Page<DocRkk> findAllDocRkk(int page, int size) {
-        return docRkkRepo.findAll(PageRequest.of(page, size, Sort.by("registrationDate")));
+    public Page<DocRkk> findActiveDocRkks(int page, int size) {
+        return docRkkRepo.findAllByIsDeleted(false, PageRequest.of(page, size, Sort.by("registrationDate")));
+    }
+
+    @Override
+    public Page<DocRkk> findDeletedDocRkks(int page, int size) {
+        return docRkkRepo.findAllByIsDeleted(true, PageRequest.of(page, size, Sort.by("registrationDate")));
     }
 
     @Override

@@ -32,6 +32,7 @@ public class DocRkk implements Serializable {
     private String          agendaNumber;
     private Date            headSignature;
     private Date            publicationDate;
+    private Boolean         isDeleted;
 
     @OneToOne
     @JoinColumn(name = "id_npa_type", referencedColumnName = "id")
@@ -216,6 +217,15 @@ public class DocRkk implements Serializable {
         this.session = session;
     }
 
+    @Basic
+    @Column(name = "is_deleted")
+    public Boolean getDeleted() {
+        return isDeleted;
+    }
+    public void setDeleted(Boolean deleted) {
+        isDeleted = deleted;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -236,11 +246,12 @@ public class DocRkk implements Serializable {
                 Objects.equals(status, docRkk.status) &&
                 Objects.equals(lawSubject, docRkk.lawSubject) &&
                 Objects.equals(speaker, docRkk.speaker) &&
-                Objects.equals(session, docRkk.session);
+                Objects.equals(session, docRkk.session) &&
+                Objects.equals(isDeleted, docRkk.isDeleted);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, rkkNumber, npaName, registrationDate, introductionDate, legislativeBasis, deadline, includedInAgenda, readyForSession, npaType, responsibleOrganization, responsibleEmployee, status, lawSubject, speaker, session);
+        return Objects.hash(id, rkkNumber, npaName, registrationDate, introductionDate, legislativeBasis, deadline, includedInAgenda, readyForSession, npaType, responsibleOrganization, responsibleEmployee, status, lawSubject, speaker, session, isDeleted);
     }
 }

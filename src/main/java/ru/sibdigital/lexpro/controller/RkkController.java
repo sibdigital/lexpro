@@ -34,7 +34,22 @@ public class RkkController extends SuperController {
         int size = count == null ? 25 : count;
 
         Map<String, Object> result = new HashMap<>();
-        Page<DocRkk> docRkks = rkkService.findAllDocRkk(page, size);
+        Page<DocRkk> docRkks = rkkService.findActiveDocRkks(page, size);
+
+        result.put("data", docRkks.getContent());
+        result.put("pos", (long) page * size);
+        result.put("total_count", docRkks.getTotalElements());
+        return result;
+    }
+
+    @GetMapping("/deleted_doc_rkks")
+    public @ResponseBody Map<String, Object> getDeletedDocRkks(@RequestParam(value = "start", required = false) Integer start,
+                                                        @RequestParam(value = "count", required = false) Integer count) {
+        int page = start == null ? 0 : start / 25;
+        int size = count == null ? 25 : count;
+
+        Map<String, Object> result = new HashMap<>();
+        Page<DocRkk> docRkks = rkkService.findDeletedDocRkks(page, size);
 
         result.put("data", docRkks.getContent());
         result.put("pos", (long) page * size);

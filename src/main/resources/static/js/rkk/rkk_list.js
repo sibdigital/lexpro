@@ -44,20 +44,42 @@ function getSessionDate(session) {
     return date;
 }
 
-function openRkkTab(id) {
+function getDataFromRkkTable(id) {
+    let data = $$('rkkTableId').getItem(id);
+    if (data.status) {
+        data.status.value = data.status.name;
+    }
 
-    let data = $$('rkk_table').getItem(id);
-    data.status.value = data.status.name;
-    data.npaType.value = data.npaType.name;
-    data.responsibleOrganization.value = data.responsibleOrganization.name;
-    data.responsibleEmployee.value = data.responsibleEmployee.name;
-    data.lawSubject.value = data.lawSubject.name;
-    data.speaker.value = data.speaker.name;
+    if (data.npaType) {
+        data.npaType.value = data.npaType.name;
+    }
+
+    if (data.responsibleOrganization) {
+        data.responsibleOrganization.value = data.responsibleOrganization.name;
+    }
+
+    if (data.responsibleEmployee) {
+        data.responsibleEmployee.value = data.responsibleEmployee.name;
+    }
+
+    if (data.lawSubject) {
+        data.lawSubject.value = data.lawSubject.name;
+    }
+
+    if (data.speaker) {
+        data.speaker.value = data.speaker.name;
+    }
+
     if (data.session) {
         data.session.value = data.session.number;
         data.sessionDate   = data.session && convertToDate(data.session.date);
     }
 
+    return data;
+}
+
+function openRkkTab(id) {
+    let data = getDataFromRkkTable(id);
 
     webix.ui(rkkForm, $$('rkkListId'));
     $$('rkkForm').parse(data);
@@ -92,20 +114,25 @@ var rkkTableColumns = [
     { id: 'npaName',            header: 'Наименование НПА',   maxWidth:250,         adjust: true, sort: 'string', },
     { id: 'registrationDate',   header: 'Дата регистрации',   format: dateFormat,   adjust: true, sort: 'date'},
     { id: 'introductionDate',   header: 'Дата внесения',      format: dateFormat,   adjust: true, sort: 'date'},
-    { id: 'npaType',            header: 'Тип НПА',   template: '#npaType.name#',    adjust: true,},
+    { id: 'npaType',            header: 'Тип НПА',   template: function (obj) {
+                                                        if (obj.npaType) { return obj.npaType.name; } else { return '';}}, adjust: true,},
     { id: 'lawSubject',         header:
                                 {text: "Субъект права <br/> законодательной инициативы",
                                 height: 40,
-                                css: "multiline"}, template: '#lawSubject.name#', adjust: true,},
-    { id: 'responsibleOrganization', header: 'Ответственный комитет', template: '#responsibleOrganization.name#', adjust: true,},
-    { id: 'responsibleEmployee',     header: 'Ответственное лицо',    template: '#responsibleEmployee.name#',     adjust: true,},
+                                css: "multiline"}, template: function (obj) {
+                                    if (obj.lawSubject) { return obj.lawSubject.name; } else { return '';}}, adjust: true,},
+    { id: 'responsibleOrganization', header: 'Ответственный комитет', template: function (obj) {
+                                    if (obj.responsibleOrganization) { return obj.responsibleOrganization.name;} else { return '';}} , adjust: true,},
+    { id: 'responsibleEmployee',     header: 'Ответственное лицо',    template: function (obj) {
+                                    if (obj.responsibleEmployee) { return obj.responsibleEmployee.name;} else { return '';}}  ,     adjust: true,},
     { id: 'deadline',           header: 'Контрольный срок',   format: dateFormat,   adjust: true, sort: 'date'},
     { id: 'sessionNumber',      header: 'Номер сессии', template: function (obj) {return getSessionNumber(obj.session);},
                                                             adjust: true, sort: 'string'},
     { id: 'sessionDate',        header: 'Дата сессии',  template: function (obj) {return getSessionDate(obj.session);},
                                                             format: dateFormat,   adjust: true},
     includedInAgentaColumn,
-    { id: 'status',             header: 'Состояние',   template: '#status.name#',   adjust: true},
+    { id: 'status',             header: 'Состояние',   template: function (obj) {
+                                    if (obj.status) { return obj.status.name;}  else { return '';}} ,   adjust: true},
 ]
 
 var pager = {
@@ -134,6 +161,45 @@ var bottomPanel = {
         {},
         btnAddRkk,
     ]
+}
+
+function getRkkTable(tableId, url) {
+    return {
+        id: tableId,
+        view: 'datatable',
+        select: 'row',
+        resizeColumn:true,
+        readonly: true,
+        columns: rkkTableColumns,
+        pager: 'Pager',
+        datafetch: 25,
+        scheme: {
+            $init: function (obj) {
+                changeRkkDatesFormat(obj)
+            },
+            $update: function (obj) {
+                changeRkkDatesFormat(obj)
+            }
+        },
+        on: {
+            onBeforeLoad: function () {
+                this.showOverlay("Загружаю...");
+            },
+            onAfterLoad: function () {
+                this.hideOverlay();
+                if (!this.count()) {
+                    this.showOverlay("Отсутствуют данные")
+                }
+            },
+            onLoadError: function () {
+                this.hideOverlay();
+            },
+            onItemDblClick: function (id) {
+                openRkkTab(id);
+            }
+        },
+        url: url,
+    }
 }
 
 var rkkTable = {
@@ -184,7 +250,24 @@ const rkkList = {
                 autowidth: true,
                 autoheight: true,
                 rows: [
-                    rkkTable,
+                    getRkkTable('rkkTableId', 'doc_rkks'),
+                    bottomPanel]
+            }]
+    }
+}
+
+const rkkDeletedList = {
+    view: 'scrollview',
+    id: 'rkkDeletedListId',
+    scroll: 'xy',
+    body: {
+        type: 'space',
+        rows: [
+            {
+                autowidth: true,
+                autoheight: true,
+                rows: [
+                    getRkkTable('rkkTableId', 'deleted_doc_rkks'),
                     bottomPanel]
             }]
     }

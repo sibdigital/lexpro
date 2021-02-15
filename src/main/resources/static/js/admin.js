@@ -12,7 +12,7 @@ function getSideBarData() {
     var data = [{ id: 'References', icon: 'fas fa-book', value: 'Справочники',}];
     if (checkPrivilege('READ_RKK')) {
         data.push({ id: 'Rkk', icon: 'fas fa-file-alt',   value: 'РКК', });
-        data.push({ id: 'RkkArchive', icon: 'fas fa-folder', value: 'Архив РКК'})
+        data.push({ id: 'DeletedRkk', icon: 'fas fa-folder', value: 'Удаленные РКК'})
     }
 
     return data;
@@ -37,8 +37,8 @@ function getView(id) {
             view = rkkList;
             break;
         }
-        case 'RkkArchive': {
-            view = rkkArchiveList;
+        case 'DeletedRkk': {
+            view = rkkDeletedList;
             break;
         }
         case 'References': {
