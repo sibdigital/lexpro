@@ -58,6 +58,9 @@ public class SuperController {
     @Autowired
     RegRkkVisaRepo regRkkVisaRepo;
 
+    @Autowired
+    ClsOrganizationRepo clsOrganizationRepo;
+
     protected CurrentUser getCurrentUser() {
         return (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }

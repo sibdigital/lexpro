@@ -31,7 +31,8 @@ CREATE TABLE if not exists cls_organization
     hash_code               text,
     is_activated            boolean default false,
     is_deleted              boolean default false,
-    path                    ltree
+    path                    ltree,
+    parent_id               integer
 );
 
 CREATE TABLE if not exists cls_employee

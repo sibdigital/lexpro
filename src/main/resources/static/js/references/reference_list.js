@@ -9,6 +9,10 @@ function getReferenceView(id) {
             // view = referenceList;
             break;
         }
+        case 'Organizations': {
+            view = organizationList;
+            break;
+        }
     }
     return view;
 }
@@ -24,6 +28,8 @@ function openReference(id) {
 var reference_set = [
     { referenceId: 'Users',              referenceName: 'Пользователи', },
     { referenceId: 'RolesAndPrivileges', referenceName: 'Роли и права', },
+    { referenceId: 'Organizations',      referenceName: 'Организационная структура',},
+
 ]
 
 var referenceTable = {
