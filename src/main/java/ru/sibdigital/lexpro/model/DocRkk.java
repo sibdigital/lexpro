@@ -32,6 +32,7 @@ public class DocRkk implements Serializable {
     private String          agendaNumber;
     private Date            headSignature;
     private Date            publicationDate;
+    private Boolean         isArchived;
     private Boolean         isDeleted;
 
     @OneToOne
@@ -219,11 +220,20 @@ public class DocRkk implements Serializable {
 
     @Basic
     @Column(name = "is_deleted")
-    public Boolean getDeleted() {
+    public Boolean getIsDeletedDeleted() {
         return isDeleted;
     }
-    public void setDeleted(Boolean deleted) {
-        isDeleted = deleted;
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+
+    @Basic
+    @Column(name = "is_archived")
+    public Boolean getIsArchived() {
+        return isArchived;
+    }
+    public void setIsArchived(Boolean isArchived) {
+        this.isArchived = isArchived;
     }
 
     @Override
@@ -247,7 +257,8 @@ public class DocRkk implements Serializable {
                 Objects.equals(lawSubject, docRkk.lawSubject) &&
                 Objects.equals(speaker, docRkk.speaker) &&
                 Objects.equals(session, docRkk.session) &&
-                Objects.equals(isDeleted, docRkk.isDeleted);
+                Objects.equals(isDeleted, docRkk.isDeleted) &&
+                Objects.equals(isArchived, docRkk.isArchived);
     }
 
     @Override

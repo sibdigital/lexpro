@@ -27,7 +27,7 @@ INSERT INTO cls_rkk_status(name, code) VALUES('ПРИНЯТ', '5');
 
 INSERT INTO cls_group_attachment(name, code) VALUES ('ВНЕС', '1');
 INSERT INTO cls_group_attachment(name, code) VALUES ('ПРИНЯТ', '2');
-INSERT INTO cls_group_attachment(name, code) VALUES ('К ПРИНЯТ', '3');
+INSERT INTO cls_group_attachment(name, code) VALUES ('К ЗАСЕД', '3');
 INSERT INTO cls_group_attachment(name, code) VALUES ('РЕК', '4');
 INSERT INTO cls_group_attachment(name, code) VALUES ('НЕОБ', '5');
 INSERT INTO cls_group_attachment(name, code) VALUES ('ВИЗ', '6');

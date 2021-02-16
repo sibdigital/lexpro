@@ -92,7 +92,8 @@ CREATE TABLE if not exists doc_rkk
             references cls_rkk_status,
     head_signature              date,
     publication_date            date,
-    is_deleted                  false
+    is_archived                 boolean,
+    is_deleted                  boolean
 );
 
 CREATE TABLE if not exists reg_employee_user
