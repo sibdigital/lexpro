@@ -57,6 +57,21 @@ public class RkkController extends SuperController {
         return result;
     }
 
+    @GetMapping("/archived_doc_rkks")
+    public @ResponseBody Map<String, Object> getArchivedDocRkks(@RequestParam(value = "start", required = false) Integer start,
+                                                               @RequestParam(value = "count", required = false) Integer count) {
+        int page = start == null ? 0 : start / 25;
+        int size = count == null ? 25 : count;
+
+        Map<String, Object> result = new HashMap<>();
+        Page<DocRkk> docRkks = rkkService.findArchivedDocRkks(page, size);
+
+        result.put("data", docRkks.getContent());
+        result.put("pos", (long) page * size);
+        result.put("total_count", docRkks.getTotalElements());
+        return result;
+    }
+
     @GetMapping("/doc_rkk/{id_doc_rkk}")
     public @ResponseBody DocRkk getDocRkk(@PathVariable("id_doc_rkk") Long idDocRkk) {
         return docRkkRepo.findById(idDocRkk).orElse(null);
@@ -161,4 +176,27 @@ public class RkkController extends SuperController {
         return "РКК сохранена";
     }
 
+    @PostMapping("/archive_rkk")
+    public @ResponseBody String archiveRkk(@RequestBody DocRkkDto docRkkDto) {
+        DocRkk docRkk = rkkService.archiveDocRkk(docRkkDto);
+        return "РКК сохранена";
+    }
+
+    @PostMapping("/delete_rkk")
+    public @ResponseBody String deleteRkk(@RequestBody DocRkkDto docRkkDto) {
+        DocRkk docRkk = rkkService.deleteDocRkk(docRkkDto);
+        return "РКК сохранена";
+    }
+
+    @PostMapping("/restore_rkk")
+    public @ResponseBody String restoreRkk(@RequestBody DocRkkDto docRkkDto) {
+        DocRkk docRkk = rkkService.restoreDocRkk(docRkkDto);
+        return "РКК сохранена";
+    }
+
+    @PostMapping("/rearchive_rkk")
+    public @ResponseBody String rearchiveRkk(@RequestBody DocRkkDto docRkkDto) {
+        DocRkk docRkk = rkkService.rearchiveDocRkk(docRkkDto);
+        return "РКК сохранена";
+    }
 }

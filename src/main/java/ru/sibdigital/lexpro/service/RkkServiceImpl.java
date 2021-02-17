@@ -21,12 +21,17 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
 
     @Override
     public Page<DocRkk> findActiveDocRkks(int page, int size) {
-        return docRkkRepo.findAllByIsDeleted(false, PageRequest.of(page, size, Sort.by("registrationDate")));
+        return docRkkRepo.findAllByIsDeletedAndIsArchived(false, false, PageRequest.of(page, size, Sort.by("registrationDate")));
     }
 
     @Override
     public Page<DocRkk> findDeletedDocRkks(int page, int size) {
         return docRkkRepo.findAllByIsDeleted(true, PageRequest.of(page, size, Sort.by("registrationDate")));
+    }
+
+    @Override
+    public Page<DocRkk> findArchivedDocRkks(int page, int size) {
+        return docRkkRepo.findAllByIsArchived(true, PageRequest.of(page, size, Sort.by("registrationDate")));
     }
 
     @Override
@@ -172,6 +177,8 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
                         .agendaNumber(docRkkDto.getAgendaNumber())
                         .headSignature(parseDateFromForm(docRkkDto.getHeadSignature()))
                         .publicationDate(parseDateFromForm(docRkkDto.getPublicationDate()))
+                        .isArchived(false)
+                        .isDeleted(false)
                         .build();
         return docRkk;
     }
@@ -195,6 +202,69 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
         docRkk.setAgendaNumber(docRkkDto.getAgendaNumber());
         docRkk.setHeadSignature(parseDateFromForm(docRkkDto.getHeadSignature()));
         docRkk.setPublicationDate(parseDateFromForm(docRkkDto.getPublicationDate()));
+        docRkk.setIsArchived(false);
+        docRkk.setIsDeleted(false);
+
+        return docRkk;
+    }
+
+    @Override
+    public DocRkk archiveDocRkk(DocRkkDto docRkkDto) {
+        DocRkk docRkk = null;
+        Long docRkkDtoId = docRkkDto.getId();
+        if (docRkkDtoId != null) {
+            docRkk = getDocRkkById(docRkkDtoId);
+            if (docRkk != null) {
+                docRkk.setIsArchived(true);
+            }
+        }
+
+        docRkkRepo.save(docRkk);
+
+        return docRkk;
+    }
+
+    @Override
+    public DocRkk deleteDocRkk(DocRkkDto docRkkDto) {
+        DocRkk docRkk = null;
+        Long docRkkDtoId = docRkkDto.getId();
+        if (docRkkDtoId != null) {
+            docRkk = getDocRkkById(docRkkDtoId);
+            if (docRkk != null) {
+                docRkk.setIsDeleted(true);
+            }
+        }
+        docRkkRepo.save(docRkk);
+
+        return docRkk;
+    }
+
+    @Override
+    public DocRkk restoreDocRkk(DocRkkDto docRkkDto) {
+        DocRkk docRkk = null;
+        Long docRkkDtoId = docRkkDto.getId();
+        if (docRkkDtoId != null) {
+            docRkk = getDocRkkById(docRkkDtoId);
+            if (docRkk != null) {
+                docRkk.setIsDeleted(false);
+            }
+        }
+        docRkkRepo.save(docRkk);
+
+        return docRkk;
+    }
+
+    @Override
+    public DocRkk rearchiveDocRkk(DocRkkDto docRkkDto) {
+        DocRkk docRkk = null;
+        Long docRkkDtoId = docRkkDto.getId();
+        if (docRkkDtoId != null) {
+            docRkk = getDocRkkById(docRkkDtoId);
+            if (docRkk != null) {
+                docRkk.setIsArchived(false);
+            }
+        }
+        docRkkRepo.save(docRkk);
 
         return docRkk;
     }

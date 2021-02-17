@@ -12,6 +12,8 @@ public interface RkkService {
 
     Page<DocRkk> findDeletedDocRkks(int page, int size);
 
+    Page<DocRkk> findArchivedDocRkks(int page, int size);
+
     List<ClsRkkStatus> getRkkStatusList();
 
     List<ClsNpaType> getNpaTypeList();
@@ -25,5 +27,13 @@ public interface RkkService {
     List<ClsRkkStage> getStageList();
 
     DocRkk saveDocRkk(DocRkkDto docRkkDto);
+
+    DocRkk archiveDocRkk(DocRkkDto docRkkDto);
+
+    DocRkk deleteDocRkk(DocRkkDto docRkkDto);
+
+    DocRkk restoreDocRkk(DocRkkDto docRkkDto);
+
+    DocRkk rearchiveDocRkk(DocRkkDto docRkkDto);
 
 }

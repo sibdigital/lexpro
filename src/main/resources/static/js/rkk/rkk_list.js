@@ -144,6 +144,100 @@ var pager = {
     template: '{common.first()}{common.prev()}{common.pages()}{common.next()}{common.last()}'
 }
 
+function addRkk() {
+    webix.ui(rkkForm, $$('rkkListId'));
+}
+
+function archiveRkk(selectedRows) {
+    webix.confirm('Вы действительно хотите заархивировать РКК?')
+        .then(
+            function () {
+                selectedRows.forEach(element => {
+                    let item = $$('rkkTableId').getItem(element.id);
+                    let params = {'id': item.id};
+                    webix.ajax().headers({
+                        'Content-Type': 'application/json'
+                    }).post('/archive_rkk', params).then(function (data) {
+                        if (data.text() === 'РКК сохранена') {
+                            webix.message({
+                                text: 'Заархивировано',
+                                type: 'success'
+                            });
+
+                            $$('rkkTableId').clearAll();
+                            $$('rkkTableId').load('doc_rkks');
+                        }})
+                })
+            })
+}
+
+function deleteRkk(selectedRows) {
+    webix.confirm('Вы действительно хотите удалить РКК?')
+        .then(
+            function () {
+                selectedRows.forEach(element => {
+                    let item = $$('rkkTableId').getItem(element.id);
+                    let params = {'id': item.id};
+                    webix.ajax().headers({
+                        'Content-Type': 'application/json'
+                    }).post('/delete_rkk', params).then(function (data) {
+                        if (data.text() === 'РКК сохранена') {
+                            webix.message({
+                                text: 'Удалено',
+                                type: 'success'
+                            });
+                            $$('rkkTableId').clearAll();
+                            $$('rkkTableId').load('doc_rkks');
+                        }})
+                })
+            })
+}
+
+function restoreRkk(selectedRows) {
+    webix.confirm('Вы действительно хотите восстановить РКК?')
+        .then(
+            function () {
+                selectedRows.forEach(element => {
+                    let item = $$('rkkTableId').getItem(element.id);
+                    let params = {'id': item.id};
+                    webix.ajax().headers({
+                        'Content-Type': 'application/json'
+                    }).post('/restore_rkk', params).then(function (data) {
+                        if (data.text() === 'РКК сохранена') {
+                            webix.message({
+                                text: 'Восстановлено',
+                                type: 'success'
+                            });
+
+                            $$('rkkTableId').clearAll();
+                            $$('rkkTableId').load('deleted_doc_rkks');
+                        }})
+                })
+            })
+}
+
+function rearchiveRkk(selectedRows) {
+    webix.confirm('Вы действительно хотите разархивировать РКК?')
+        .then(
+            function () {
+                selectedRows.forEach(element => {
+                    let item = $$('rkkTableId').getItem(element.id);
+                    let params = {'id': item.id};
+                    webix.ajax().headers({
+                        'Content-Type': 'application/json'
+                    }).post('/rearchive_rkk', params).then(function (data) {
+                        if (data.text() === 'РКК сохранена') {
+                            webix.message({
+                                text: 'Разархивировано',
+                                type: 'success'
+                            });
+                            $$('rkkTableId').clearAll();
+                            $$('rkkTableId').load('archived_doc_rkks');
+                        }})
+                })
+            })
+}
+
 var btnAddRkk = {
     id: 'btnAddRkk',
     view: 'button',
@@ -159,7 +253,7 @@ var bottomPanel = {
     cols: [
         pager,
         {},
-        btnAddRkk,
+        // btnAddRkk,
     ]
 }
 
@@ -199,6 +293,71 @@ function getRkkTable(tableId, url) {
             }
         },
         url: url,
+    }
+}
+
+function getTopPanelData(rkkType) {
+    let data = [];
+    if (rkkType == 'Deleted') {
+        data.push({id: 1, value: 'Восстановить', icon: 'trash-restore-alt', class: 'restoreRkk'});
+    } else if (rkkType == 'Archived') {
+        data.push({ id: 1, value: 'Разархивировать', icon: 'folder-open', class: 'rearchiveRkk'});
+    } else if (rkkType == 'Active') {
+        data.push({ id: 1, value: 'Добавить', icon: 'plus-square', class: 'addRkk'});
+        data.push({ id: 2, value: 'Редактировать', icon: 'edit',   class: 'editRkk'});
+        data.push({ id: 3, value: 'Заархивировать', icon: 'folder',class: 'archiveRkk'});
+        data.push({ id: 4, value: 'Удалить', icon: 'trash-alt',    class: 'deleteRkk'});
+    }
+
+    return data;
+}
+
+function getTopPanel(rkkType) {
+    return {
+        view: 'list',
+        scroll: false,
+        width: 200,
+        layout: 'x',
+        template: '<div class = "#class#"><span class="webix_icon fas fa-#icon#"></span> #value# </div>',
+        select: true,
+        type: {
+            width: 'auto',
+            height: 40,
+        },
+        data: getTopPanelData(rkkType),
+        onClick: {
+            'addRkk': function () { webix.ui(rkkForm, $$('rkkListId'));},
+            'editRkk': function () {
+                var selectedRows = $$('rkkTableId').getSelectedId(true);
+                if (selectedRows.length == 1) {
+                    openRkkTab(selectedRows[0].id);
+                }
+            },
+            'archiveRkk': function () {
+                var selectedRows = $$('rkkTableId').getSelectedId(true);
+                if (selectedRows.length > 0) {
+                    archiveRkk(selectedRows);
+                }
+            },
+            'deleteRkk': function () {
+                var selectedRows = $$('rkkTableId').getSelectedId(true);
+                if (selectedRows.length > 0) {
+                    deleteRkk(selectedRows);
+                }
+            },
+            'rearchiveRkk': function () {
+                var selectedRows = $$('rkkTableId').getSelectedId(true);
+                if (selectedRows.length > 0) {
+                    rearchiveRkk(selectedRows);
+                }
+            },
+            'restoreRkk': function () {
+                var selectedRows = $$('rkkTableId').getSelectedId(true);
+                if (selectedRows.length > 0) {
+                    restoreRkk(selectedRows);
+                }
+            },
+        }
     }
 }
 
@@ -250,8 +409,10 @@ const rkkList = {
                 autowidth: true,
                 autoheight: true,
                 rows: [
+                    getTopPanel('Active'),
                     getRkkTable('rkkTableId', 'doc_rkks'),
-                    bottomPanel]
+                    bottomPanel
+                ]
             }]
     }
 }
@@ -267,7 +428,26 @@ const rkkDeletedList = {
                 autowidth: true,
                 autoheight: true,
                 rows: [
+                    getTopPanel('Deleted'),
                     getRkkTable('rkkTableId', 'deleted_doc_rkks'),
+                    bottomPanel]
+            }]
+    }
+}
+
+const rkkArchivedList = {
+    view: 'scrollview',
+    id: 'rkkArchivedListId',
+    scroll: 'xy',
+    body: {
+        type: 'space',
+        rows: [
+            {
+                autowidth: true,
+                autoheight: true,
+                rows: [
+                    getTopPanel('Archived'),
+                    getRkkTable('rkkTableId', 'archived_doc_rkks'),
                     bottomPanel]
             }]
     }
