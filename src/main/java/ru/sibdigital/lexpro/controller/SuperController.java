@@ -61,6 +61,9 @@ public class SuperController {
     @Autowired
     ClsOrganizationRepo clsOrganizationRepo;
 
+    @Autowired
+    ReferenceService referenceService;
+
     protected CurrentUser getCurrentUser() {
         return (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }

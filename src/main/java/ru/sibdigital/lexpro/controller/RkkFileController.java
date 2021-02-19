@@ -35,32 +35,6 @@ public class RkkFileController extends SuperController {
         return regRkkFileRepo.findAllByDocRkkAndIsDeleted(docRkk, isDeleted).orElse(null);
     }
 
-    @GetMapping("/participant_attachment_list")
-    public @ResponseBody
-    List<KeyValue> getParticipantListForRichselect() {
-        List<KeyValue> list = rkkService.getOrganizationList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
-    @GetMapping("/group_attachement_list")
-    public @ResponseBody
-    List<KeyValue> getGroupAttachmentListForRichselect() {
-        List<KeyValue> list = rkkFileService.getGroupAttachmentList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
-    @GetMapping("/type_attachement_list")
-    public @ResponseBody
-    List<KeyValue> getTypeAttachmentListForRichselect() {
-        List<KeyValue> list = rkkFileService.getTypeAttachmentList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
 
     @PostMapping("/save_rkk_file")
     public @ResponseBody ResponseEntity<Object> saveRkkFile(@RequestParam(value = "upload") MultipartFile part, HttpSession session,

@@ -241,17 +241,6 @@ public class RkkFileServiceImpl extends SuperServiceImpl implements RkkFileServi
     }
 
     @Override
-    public List<ClsGroupAttachment> getGroupAttachmentList() {
-        return StreamSupport.stream(clsGroupAttachmentRepo.findAllByOrderByIdAsc().spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ClsTypeAttachment> getTypeAttachmentList() {
-        return StreamSupport.stream(clsTypeAttachmentRepo.findAllByOrderByIdAsc().spliterator(), false)
-                .collect(Collectors.toList());    }
-
-    @Override
     public void deleteRkkFile(RegRkkFileDto rkkFileDto) {
         Long rkkRegFileId = rkkFileDto.getId();
         if (rkkRegFileId != null) {

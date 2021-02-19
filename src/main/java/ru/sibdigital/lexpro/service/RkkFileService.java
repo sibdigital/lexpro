@@ -11,8 +11,6 @@ public interface RkkFileService {
     RegRkkFile constructRkkFile(MultipartFile part, RegRkkFileDto regRkkFileDto);
     RegRkkFile editRkkFile(RegRkkFileDto regRkkFileDto);
     RegRkkFile getRegRkkFile(RegRkkFileDto regRkkFileDto);
-    List<ClsGroupAttachment> getGroupAttachmentList();
-    List<ClsTypeAttachment> getTypeAttachmentList();
     void deleteRkkFile(RegRkkFileDto rkkFileDto);
     void savePreviousFileCopy(RegRkkFile rkkFile);
 }

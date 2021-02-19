@@ -1,3 +1,8 @@
+import {attachmentGroupList} from "./attachment_groups/attachment_group_list.js";
+import {attachmentTypeList} from "./attachment_types/attachment_type_list.js";
+import {organizationList} from "./organizations/organization_list.js";
+import {userList} from "./users/user_list.js";
+
 function getReferenceView(id) {
     let view;
     switch (id) {
@@ -13,6 +18,14 @@ function getReferenceView(id) {
             view = organizationList;
             break;
         }
+        case 'TypeAttachments': {
+            view = attachmentTypeList;
+            break;
+        }
+        case 'GroupAttachments': {
+            view = attachmentGroupList;
+            break;
+        }
     }
     return view;
 }
@@ -24,12 +37,12 @@ function openReference(id) {
     webix.ui(view, $$('referenceListId'));
 }
 
-
 var reference_set = [
     { referenceId: 'Users',              referenceName: 'Пользователи', },
     { referenceId: 'RolesAndPrivileges', referenceName: 'Роли и права', },
     { referenceId: 'Organizations',      referenceName: 'Организационная структура',},
-
+    { referenceId: 'TypeAttachments',    referenceName: 'Типы документов (вложения)',},
+    { referenceId: 'GroupAttachments',   referenceName: 'Группы вложений',},
 ]
 
 var referenceTable = {
@@ -62,7 +75,7 @@ var referenceTable = {
     },
 }
 
-const referenceList = {
+export const referenceList = {
     view: 'scrollview',
     id: 'referenceListId',
     scroll: 'xy',

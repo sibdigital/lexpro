@@ -104,10 +104,10 @@ var btnRkkAttachmentPanel = {
 }
 
 var rkkAttachmentElements = [
-    { view: 'richselect', label: 'Участник', labelPosition: 'top', name: 'participantId', options: 'participant_attachment_list'},
+    { view: 'richselect', label: 'Участник', labelPosition: 'top', name: 'participantId', options: 'participant_attachment_list_richselect'},
     { cols: [
-            { view: 'richselect', label: 'Группа', labelPosition: 'top', name: 'groupId', options: 'group_attachement_list'},
-            { view: 'richselect', label: 'Тип документа', labelPosition: 'top', name: 'typeId', options: 'type_attachement_list'},
+            { view: 'richselect', label: 'Группа', labelPosition: 'top', name: 'groupId', options: 'group_attachement_list_richselect'},
+            { view: 'richselect', label: 'Тип документа', labelPosition: 'top', name: 'typeId', options: 'type_attachment_list_richselect'},
         ]
     },
     {

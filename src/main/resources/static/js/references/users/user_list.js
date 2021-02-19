@@ -32,7 +32,7 @@ var userTable = {
     url: 'user_list',
 }
 
-const userList = {
+export const userList = {
     view: 'scrollview',
     id: 'userListId',
     scroll: 'xy',

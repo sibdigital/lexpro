@@ -17,7 +17,7 @@ public class ClsGroupAttachment implements Serializable {
 
     @Id
     @Column(name = "id", nullable = false)
-    @SequenceGenerator(name = "CLS_GROUP_ATTACH_SEQ_GEN", sequenceName = "cls_group_attach_id_seq", allocationSize = 1, schema = "public")
+    @SequenceGenerator(name = "CLS_GROUP_ATTACH_SEQ_GEN", sequenceName = "cls_group_attachment_id_seq", allocationSize = 1, schema = "public")
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "CLS_GROUP_ATTACH_SEQ_GEN")
     private Long id;
 

@@ -2,6 +2,10 @@
     line-height:20px !important;
 }
 
-.styleIcon .webix_icon:before{
+.panelIcon .webix_icon:before{
     color: #1CA1C1;
+}
+
+.panelIcon .webix_list_item:hover{
+    background-color: #c9eaf5;
 }

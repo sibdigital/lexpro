@@ -35,42 +35,6 @@ public class RkkServiceImpl extends SuperServiceImpl implements RkkService{
     }
 
     @Override
-    public List<ClsRkkStatus> getRkkStatusList() {
-        return StreamSupport.stream(clsRkkStatusRepo.findAllByOrderByIdAsc().spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ClsNpaType> getNpaTypeList() {
-        return StreamSupport.stream(clsNpaTypeRepo.findAllByOrderByIdAsc().spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ClsOrganization> getOrganizationList() {
-        return StreamSupport.stream(clsOrganizationRepo.findAllByOrderByIdAsc().spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ClsEmployee> getEmployeeList() {
-        return StreamSupport.stream(clsEmployeeRepo.findAllByOrderByIdAsc().spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ClsSession> getSessionList() {
-        return StreamSupport.stream(clsSessionRepo.findAllByOrderByIdAsc().spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ClsRkkStage> getStageList() {
-        return StreamSupport.stream(clsRkkStageRepo.findAllByOrderByIdAsc().spliterator(), false)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public DocRkk saveDocRkk(DocRkkDto docRkkDto) {
         DocRkk docRkk = null;
         Long docRkkDtoId = docRkkDto.getId();

@@ -1,4 +1,5 @@
 webix.i18n.setLocale("ru-RU");
+import {rkkForm} from "./rkk_form/rkk_form.js";
 
 function changeRkkDatesFormat(obj) {
     if ( obj.registrationDate != null && !(obj.registrationDate instanceof Date)) {
@@ -78,16 +79,40 @@ function getDataFromRkkTable(id) {
     return data;
 }
 
+function getAttachmentDataByRkkId(id) {
+    let params = {'docRkkId': id};
+    let xhr = webix.ajax().sync().get('doc_rkk_files', params);
+    var data = JSON.parse(xhr.responseText);
+
+    for (var k in data) {
+        var row = data[k];
+        if (row.group) {
+            row.group.value = row.group.name;
+        }
+
+        if (row.type) {
+            row.type.value = row.type.name;
+        }
+
+        if (row.participant) {
+            row.participant.value = row.participant.name;
+        }
+    }
+
+    return data;
+}
+
 function openRkkTab(id) {
     let data = getDataFromRkkTable(id);
 
     webix.ui(rkkForm, $$('rkkListId'));
     $$('rkkForm').parse(data);
 
-    let params = {'docRkkId': data.id};
-    let attachmentData = webix.ajax().get('doc_rkk_files', params);
+    let attachmentData = getAttachmentDataByRkkId(data.id);
+    // let attachmentData = webix.ajax().get('doc_rkk_files', params);
     $$('attachmentDatatableId').parse(attachmentData);
 
+    let params = {'docRkkId': data.id};
     let mailingData = webix.ajax().get('rkk_mailing_dtos', params);
     $$('mailingRkkTableId').parse(mailingData);
 
@@ -299,9 +324,9 @@ function getRkkTable(tableId, url) {
 function getTopPanelData(rkkType) {
     let data = [];
     if (rkkType == 'Deleted') {
-        data.push({id: 1, value: 'Восстановить', icon: 'trash-restore-alt', class: 'restoreRkk'});
+        data.push({id: 1, value: 'Восстановить', icon: 'trash-restore-alt', class: 'restoreRkk', });
     } else if (rkkType == 'Archived') {
-        data.push({ id: 1, value: 'Разархивировать', icon: 'folder-open', class: 'rearchiveRkk'});
+        data.push({ id: 1, value: 'Разархивировать', icon: 'folder-open', class: 'rearchiveRkk', css: 'styleIcon'});
     } else if (rkkType == 'Active') {
         data.push({ id: 1, value: 'Добавить', icon: 'plus-square', class: 'addRkk'});
         data.push({ id: 2, value: 'Редактировать', icon: 'edit',   class: 'editRkk'});
@@ -319,7 +344,8 @@ function getTopPanel(rkkType) {
         width: 200,
         layout: 'x',
         template: '<div class = "#class#"><span class="webix_icon fas fa-#icon#"></span> #value# </div>',
-        select: true,
+        css: 'panelIcon',
+        // select: true,
         type: {
             width: 'auto',
             height: 40,
@@ -398,7 +424,7 @@ var rkkTable = {
     url: 'doc_rkks',
 }
 
-const rkkList = {
+export const rkkList = {
     view: 'scrollview',
     id: 'rkkListId',
     scroll: 'xy',
@@ -417,7 +443,7 @@ const rkkList = {
     }
 }
 
-const rkkDeletedList = {
+export const rkkDeletedList = {
     view: 'scrollview',
     id: 'rkkDeletedListId',
     scroll: 'xy',
@@ -435,7 +461,7 @@ const rkkDeletedList = {
     }
 }
 
-const rkkArchivedList = {
+export const rkkArchivedList = {
     view: 'scrollview',
     id: 'rkkArchivedListId',
     scroll: 'xy',

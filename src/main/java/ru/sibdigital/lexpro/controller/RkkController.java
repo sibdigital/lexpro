@@ -107,69 +107,6 @@ public class RkkController extends SuperController {
         return list;
     }
 
-    @GetMapping("/status_list")
-    public @ResponseBody
-    List<KeyValue> getStatusListForRichselect() {
-        List<KeyValue> list = rkkService.getRkkStatusList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
-    @GetMapping("/stage_list")
-    public @ResponseBody
-    List<KeyValue> getStageListForRichselect() {
-        List<KeyValue> list = rkkService.getStageList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
-    @GetMapping("/npa_type_list")
-    public @ResponseBody
-    List<KeyValue> getNpaTypeListForRichselect() {
-        List<KeyValue> list = rkkService.getNpaTypeList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
-    @GetMapping("/responsible_organization_list")
-    public @ResponseBody
-    List<KeyValue> getResponsibleOrganizationListForRichselect() {
-        List<KeyValue> list = rkkService.getOrganizationList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
-    @GetMapping("/responsible_employee_list")
-    public @ResponseBody
-    List<KeyValue> getResponsibleEmployeeListForRichselect() {
-        List<KeyValue> list = rkkService.getEmployeeList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
-    @GetMapping("/law_subject_list")
-    public @ResponseBody
-    List<KeyValue> getLawSubjectListForRichselect() {
-        List<KeyValue> list = rkkService.getOrganizationList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getName()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
-    @GetMapping("/session_list")
-    public @ResponseBody
-    List<KeyValue> getSessionListForRichselect() {
-        List<KeyValue> list = rkkService.getSessionList().stream()
-                .map(ctr -> new KeyValue(ctr.getClass().getSimpleName(), ctr.getId(), ctr.getNumber()))
-                .collect(Collectors.toList());
-        return list;
-    }
-
     @PostMapping("/save_rkk")
     public @ResponseBody String saveRkk(@RequestBody DocRkkDto docRkkDto) {
         DocRkk docRkk = rkkService.saveDocRkk(docRkkDto);
