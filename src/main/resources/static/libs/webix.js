@@ -1,6 +1,6 @@
 /**
  * @license
- * webix UI v.7.0.0
+ * webix UI v.8.1.0
  * This software is allowed to use under GPL or you need to obtain Commercial License
  * to use it in non-GPL project. Please contact sales@webix.com for details
  */
@@ -23,6 +23,26 @@
     }
 
     return _typeof(obj);
+  }
+
+  function _toConsumableArray(arr) {
+    return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread();
+  }
+
+  function _arrayWithoutHoles(arr) {
+    if (Array.isArray(arr)) {
+      for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
+
+      return arr2;
+    }
+  }
+
+  function _iterableToArray(iter) {
+    if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter);
+  }
+
+  function _nonIterableSpread() {
+    throw new TypeError("Invalid attempt to spread non-iterable instance");
   }
 
   var global = window;
@@ -1090,7 +1110,7 @@
 
       if (!this._sync) setTimeout(function () {
         x.send(params || null);
-      }, 1);else x.send(params || null);
+      }, 0);else x.send(params || null);
 
       if (this.master && !this._sync) {
         defer.then(function (data) {
@@ -1462,6 +1482,7 @@
   env.isMac = agent.indexOf("Mac") != -1;
   if (agent.indexOf("Mobile") != -1 || agent.indexOf("Windows Phone") != -1) env.mobile = true;
   if (env.mobile || agent.indexOf("iPad") != -1 || agent.indexOf("Android") != -1) env.touch = true;
+  if (!env.touch && navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) env.touch = true;
   if (agent.indexOf("Opera") != -1) env.isOpera = true;else {
     //very rough detection, but it is enough for current goals
     env.isIE = !!document.all || agent.indexOf("Trident") !== -1;
@@ -1636,7 +1657,7 @@
     var trg;
     if (e.tagName) trg = e;else {
       e = e || event;
-      trg = e.target || e.srcElement;
+      trg = e.target;
     }
 
     while (trg) {
@@ -2110,6 +2131,13 @@
       var spans = [];
       var styles = [];
       var sizes = [];
+      var types = [];
+      var cellTypes = {
+        n: "number",
+        d: "date",
+        s: "string",
+        b: "boolean"
+      };
 
       if (sheet && sheet["!ref"]) {
         var range = XLS.utils.decode_range(sheet["!ref"]),
@@ -2135,6 +2163,7 @@
                 ncell = cell.f.charAt(0) == "=" ? cell.f : "=" + cell.f;else if (cell.t == "d" && isDate(cell.v)) ncell = i18n.dateFormatStr(cell.v);else ncell = cell.v;
               nrow.push(ncell);
               if (cell.s) styles.push([row - yCorrection, col - xCorrection, cell.s]);
+              if (cell.t) types.push([row - yCorrection, col - xCorrection, cellTypes[cell.t]]);
             }
           }
 
@@ -2175,6 +2204,7 @@
         spans: spans,
         styles: styles,
         sizes: sizes,
+        types: types,
         excel: true
       };
     },
@@ -2281,7 +2311,7 @@
       var gen = this._data_generation;
 
       if (result && result.then) {
-        result.then(function (data) {
+        return result.then(function (data) {
           // component destroyed, or clearAll was issued
           if (_this2.$destructed || gen && _this2._data_generation !== gen) // by returning rejection we are preventing the further executing chain
             // if user have used list.load(data).then(do_something)
@@ -2314,7 +2344,7 @@
       return Deferred.resolve();
     },
     _syncData: function (data) {
-      if (this.data) this.data.attachEvent("onSyncApply", bind(function () {
+      if (this.data && this.data.attachEvent) this.data.attachEvent("onSyncApply", bind(function () {
         if (this._call_onready) this._call_onready();
       }, this));
       this.sync(data);
@@ -2676,7 +2706,7 @@
       this._backbone_sync = false;
 
       if (source.name != "DataStore") {
-        if (source.data && source.name == "DataStore") {
+        if (source.data && source.data.name == "DataStore") {
           source = source.data;
         } else {
           this._backbone_sync = true;
@@ -2735,13 +2765,9 @@
       }
 
       if (pos$$1.y < top + sense) {
-        this._auto_scrollTo(scroll.x, scroll.y - sense * 2, pos$$1);
-
-        return true;
+        return this._auto_scrollTo(scroll.x, scroll.y - sense * 2, pos$$1, "y");
       } else if (pos$$1.y > bottom - sense) {
-        this._auto_scrollTo(scroll.x, scroll.y + sense * 2, pos$$1);
-
-        return true;
+        return this._auto_scrollTo(scroll.x, scroll.y + sense * 2, pos$$1, "y");
       }
 
       return false;
@@ -2752,19 +2778,22 @@
       var scroll = this.getScrollState();
 
       if (pos$$1.x < left + sense) {
-        this._auto_scrollTo(scroll.x - sense * 2, scroll.y, pos$$1);
-
-        return true;
+        return this._auto_scrollTo(scroll.x - sense * 2, scroll.y, pos$$1, "x");
       } else if (pos$$1.x > right - sense) {
-        this._auto_scrollTo(scroll.x + sense * 2, scroll.y, pos$$1);
-
-        return true;
+        return this._auto_scrollTo(scroll.x + sense * 2, scroll.y, pos$$1, "x");
       }
 
       return false;
     },
-    _auto_scrollTo: function (x, y, pos$$1) {
-      if (this.callEvent("onBeforeAutoScroll", [pos$$1])) this.scrollTo(x, y);
+    _auto_scrollTo: function (x, y, pos$$1, mode) {
+      if (this.callEvent("onBeforeAutoScroll", [pos$$1])) {
+        this.scrollTo(x, y);
+        this.callEvent("onAfterAutoScroll", []);
+        var scroll = this.getScrollState();
+        return scroll[mode] === (mode === "x" ? x : y);
+      }
+
+      return false;
     }
   };
 
@@ -2868,6 +2897,7 @@
     destructors: [],
     _noselect_element: null,
     _modality: 0,
+    _popups: _to_array(),
     _wait_animate: null
   };
 
@@ -3045,7 +3075,7 @@
 
     if (_typeof(id) == "object") {
       if (id._settings) return id;
-      name = id.target || id.srcElement || id;
+      name = id.target || id;
     }
 
     return views[locate({
@@ -3154,7 +3184,7 @@
 
       element.getNode(e); //reaction on custom css elements in buttons
 
-      var trg = e.target || e.srcElement;
+      var trg = e.target;
       if (element.config.disabled) return;
       var css = "";
       if (trg.className && trg.className.toString().indexOf("webix_view") === 0) return;
@@ -3189,8 +3219,13 @@
 
       var popup = element._settings.popup;
 
-      if (element._settings.popup && !element._settings.readonly) {
-        if (_typeof(popup) == "object" && !popup.name) popup = element._settings.popup = ui(popup)._settings.id;
+      if (popup && !element._settings.readonly) {
+        if (_typeof(popup) == "object" && !popup.name) {
+          popup = element._settings.popup = ui(popup)._settings.id;
+
+          element._destroy_with_me.push($$(popup));
+        }
+
         popup = $$(popup);
         assert(popup, "Unknown popup");
 
@@ -3218,6 +3253,7 @@
   var TooltipControl = {
     _tooltip_masters: _to_array(["dummy"]),
     _tooltip_exist: 0,
+    overflow: false,
     delay: 400,
     addTooltip: function (target, config) {
       var _this = this;
@@ -3249,6 +3285,7 @@
 
       if (!this._tooltip) {
         this._tooltip = new ui.tooltip({});
+        this._tooltip._css_name = "webix_tooltip webix_global_tooltip";
         this._webix_tooltip_mm = event$1(document, "mousemove", this._move_tooltip, {
           bind: this
         });
@@ -3256,10 +3293,10 @@
           bind: this
         });
         this._drag_event = attachEvent("onDragMode", function () {
-          _this._hide_tooltip();
+          return _this._hide_tooltip();
         });
         this._click_event = attachEvent("onClick", function () {
-          _this._hide_tooltip();
+          return _this._hide_tooltip();
         });
       }
     },
@@ -3267,10 +3304,18 @@
       return this._tooltip;
     },
     _move_tooltip: function (e) {
-      var node = e.target || e.srcElement;
-      var text;
+      var c = {};
+      var node = e.target;
 
       while (node instanceof Element && node.tagName != "HTML") {
+        // find `webix_tooltip` marker
+        if (!c.first || !c.overflow) {
+          var text = node.getAttribute("webix_tooltip");
+          c.first = c.first || text;
+          if (text && node.scrollWidth > node.clientWidth) c.overflow = text;
+        } // find tooltip master
+
+
         if (this._tooltip_masters[node.webix_tooltip]) {
           if (this._last && this._last != node) {
             this.$tooltipOut(this._last, node, e);
@@ -3279,11 +3324,9 @@
           }
 
           if (!this._last) this._last = this.$tooltipIn(node, e);
-          this.$tooltipMove(node, e, text);
-          return;
+          return this.$tooltipMove(node, e, c);
         }
 
-        text = text || node.getAttribute("webix_tooltip");
         node = node.parentElement;
       }
 
@@ -3336,7 +3379,7 @@
       this._tooltip.define({
         dx: 20,
         dy: 0,
-        template: t.getAttribute("webix_tooltip") || "",
+        template: "",
         css: ""
       });
 
@@ -3350,14 +3393,14 @@
 
       return null;
     },
-    $tooltipMove: function (t, e, text) {
+    $tooltipMove: function (t, e, c) {
       var m = this._tooltip_masters[t.webix_tooltip];
-      if (m.$tooltipMove && m != this) return m.$tooltipMove(t, e, text);
-
-      this._tooltip.hide();
-
-      clearTimeout(this._before_show_delay);
-      this._before_show_delay = delay(this._tooltip.show, this._tooltip, [text || {}, pos(e)], this.delay);
+      if (m.$tooltipMove && m != this) return m.$tooltipMove(t, e, c);
+      var overflow = isUndefined(m.overflow) ? this.overflow : m.overflow;
+      var time = isUndefined(m.delay) ? this.delay : m.delay;
+      var text = overflow ? c.overflow : c.first;
+      if (time > 0) this._hide_tooltip();
+      this._before_show_delay = delay(this._tooltip.show, this._tooltip, [text || {}, pos(e)], time);
     }
   };
 
@@ -3401,7 +3444,12 @@
       }
     }
   }
-  function zIndex() {
+  function zIndex(index) {
+    if (!isUndefined(index)) {
+      env.zIndexBase = Math.max(env.zIndexBase, index + 1);
+      return index;
+    }
+
     return env.zIndexBase++;
   }
   event$1(window, "resize", function () {
@@ -3460,6 +3508,176 @@
     });
   });
 
+  var fullscreen = {
+    set: function (view, config) {
+      config = config || {};
+      if (this._view) this.exit();
+      if ($$(view)) view = $$(view);else {
+        if (typeof view == "string") view = document.getElementById(view);
+        if (view instanceof Element) view = {
+          $view: view,
+          $html: true
+        };
+        assert(view, "Incorrect view for fullscreen mode");
+      }
+      this._view = view;
+      this._pos = this._setPosition();
+      var viewConfig = view.config;
+
+      if (view.setPosition) {
+        viewConfig.fullscreen = true;
+        view.resize();
+      } else {
+        this._fullscreen = ui({
+          view: "window",
+          head: this._getHeadConfig(config),
+          fullscreen: true,
+          borderless: true,
+          //better resize logic
+          body: {
+            rows: []
+          }
+        });
+        if (viewConfig) this._sizes = {
+          width: viewConfig.width,
+          minWidth: viewConfig.minWidth,
+          maxWidth: viewConfig.maxWidth,
+          height: viewConfig.height,
+          minHeight: viewConfig.minHeight,
+          maxHeight: viewConfig.maxHeight
+        };
+
+        if (view.getParentView && view.getParentView()) {
+          this._parent = view.getParentView();
+
+          if (this._parent.index) {
+            this._pos.index = this._parent.index(view);
+            this._pos.active = this._parent.getActiveId ? this._parent.getActiveId() == viewConfig.id : false;
+          }
+        } else {
+          this._parent = view.$view.parentNode;
+          this._pos.node = create("div"); //save old position
+
+          this._parent.replaceChild(this._pos.node, view.$view);
+        }
+
+        this._fullscreen.getBody().addView(view.$html ? {
+          view: "template",
+          content: view.$view,
+          css: "webix_fullscreen_html"
+        } : view);
+
+        this._fullscreen.show();
+
+        this._setSizes(view);
+      }
+    },
+    exit: function () {
+      if (this._view) {
+        var viewConfig = this._view.config;
+
+        this._setPosition(true);
+
+        if (this._view.setPosition) {
+          viewConfig.fullscreen = false;
+
+          this._view.resize();
+        } else {
+          if (this._parent instanceof Element) {
+            this._view._parent_cell = null;
+            if (this._view._set_inner) this._view._set_inner(this._view.config);
+
+            this._parent.replaceChild(this._view.$view, this._pos.node);
+          } else {
+            if (!isUndefined(this._pos.index)) {
+              this._parent.addView(this._view, this._pos.index);
+
+              if (this._pos.active) this._view.show(false, false);
+            } else {
+              this._view._parent_cell = this._parent;
+
+              this._parent._replace(this._view);
+            }
+          }
+
+          this._setSizes(this._view, this._sizes); //prevent view destruction (with layout)
+
+
+          if (!this._view.$html) this._fullscreen.getBody()._cells = []; //we can't set head false with replace, so we need to close win
+
+          this._fullscreen.close();
+        }
+
+        this._clearValues();
+      }
+    },
+    _clearValues: function () {
+      delete this._parent;
+      delete this._view;
+      delete this._sizes;
+      delete this._pos;
+      delete this._fullscreen;
+    },
+    _setPosition: function (restore) {
+      var _this = this;
+
+      var view = this._view;
+      var oldStyles = {};
+
+      if (view.setPosition) {
+        if (restore) view.setPosition(this._pos.left, this._pos.top);else {
+          oldStyles.left = view.config.left;
+          oldStyles.top = view.config.top;
+          view.setPosition(0, 0);
+        }
+      } else {
+        var rules = ["position", "top", "bottom", "left", "right"];
+        var style = view.$view.style;
+        rules.forEach(function (rule) {
+          if (restore) style[rule] = _this._pos[rule];else {
+            oldStyles[rule] = style[rule];
+            style[rule] = rule == "position" ? "relative" : 0;
+          }
+        });
+      }
+
+      return oldStyles;
+    },
+    _setSizes: function (view, sizes) {
+      if (!view.$html) {
+        sizes = sizes || {
+          height: 0,
+          minHeight: 0,
+          maxHeight: 0,
+          width: 0,
+          minWidth: 0,
+          maxWidth: 0
+        };
+        view.define(sizes);
+        view.resize();
+      }
+    },
+    _getHeadConfig: function (config) {
+      var _this2 = this;
+
+      if (config.head === false || _typeof(config.head) == "object") return config.head;else {
+        return {
+          cols: [{
+            template: config.head || "",
+            type: "header",
+            borderless: true
+          }, {
+            view: "icon",
+            icon: "wxi-close",
+            click: function () {
+              _this2.exit();
+            }
+          }]
+        };
+      }
+    }
+  };
+
   var UIManager = {
     _view: null,
     _hotkeys: {},
@@ -3467,38 +3685,21 @@
     _tab_time: 0,
     _mouse_time: 0,
     _controls: {
-      "enter": 13,
-      "tab": 9,
-      "esc": 27,
-      "escape": 27,
-      "up": 38,
-      "down": 40,
-      "left": 37,
-      "right": 39,
-      "pgdown": 34,
-      "pagedown": 34,
-      "pgup": 33,
-      "pageup": 33,
-      "end": 35,
-      "home": 36,
-      "insert": 45,
-      "delete": 46,
-      "backspace": 8,
-      "space": 32,
-      "meta": 91,
-      "win": 91,
-      "mac": 91,
-      "multiply": 106,
-      "add": 107,
-      "subtract": 109,
-      "decimal": 110,
-      "divide": 111,
-      "scrollock": 145,
-      "pausebreak": 19,
-      "numlock": 144,
-      "5numlocked": 12,
-      "shift": 16,
-      "capslock": 20
+      "esc": "escape",
+      "up": "arrowup",
+      "down": "arrowdown",
+      "left": "arrowleft",
+      "right": "arrowright",
+      "pgdown": "pagedown",
+      "pgup": "pageup",
+      "space": " ",
+      "multiply": "*",
+      "add": "+",
+      "subtract": "-",
+      "decimal": ".",
+      "divide": "/",
+      "pausebreak": "pause",
+      "5numlocked": "clear"
     },
     _inputs: {
       "input": 1,
@@ -3508,14 +3709,19 @@
     },
     _enable: function () {
       // attaching events here
-      event$1(document.body, "click", bind(this._focus_click, this));
-      event$1(document, "keydown", bind(this._keypress, this));
-
-      _event(document.body, "mousedown", bind(function () {
+      event$1(document, "keydown", this._keypress, {
+        bind: this
+      });
+      event$1(document.body, "click", this._focus_click, {
+        capture: true,
+        bind: this
+      });
+      event$1(document.body, "mousedown", function () {
         this._mouse_time = new Date();
-      }, this));
-
-      if (document.body.addEventListener) event$1(document.body, "focus", this._focus_tab, {
+      }, {
+        bind: this
+      });
+      event$1(document.body, "focus", this._focus_tab, {
         capture: true,
         bind: this
       });
@@ -3562,7 +3768,7 @@
     hasFocus: function (view) {
       return view === this._view ? true : false;
     },
-    _focus: function (e, dont_clear) {
+    _focus: function (e) {
       var view = locate(e,
       /*@attr*/
       "view_id") || this._focus_was_there; //if html was repainted we can miss the view, so checking last processed one
@@ -3572,16 +3778,15 @@
       this._focus_was_there = null; //set timer, to fix issue with Android input focusin
 
       state._focus_time = new Date();
-      if (view == this._view) return;
-      if (!dont_clear) this._focus_was_there = null;
+      if (view == this._view) return true;
 
       if (view) {
-        view = $$(view);
-
         if (this.canFocus(view)) {
-          this.setFocus(view);
-        }
-      } else if (!dont_clear) this.setFocus(null);
+          // keep form focus
+          if (this._view && this._view.getFormView() == view && this._view.focus) this._view.focus();else this.setFocus(view);
+        } //remove focus from an unreachable view
+        else if (view.$view.contains(e.target)) e.target.blur();
+      } else this.setFocus(null);
 
       return true;
     },
@@ -3596,14 +3801,14 @@
     },
     _focus_tab: function (e) {
       if (!this._inputs[e.target.nodeName.toLowerCase()]) return false;
-      return this._focus(e, true);
+      return this._focus(e);
     },
     _top_modal: function (view) {
-      if (!document.querySelector(".webix_modal")) return true;
-      var win = view.queryView(function (a) {
-        return a.config.modal;
-      }, "parent");
-      return win && win.$view.style.zIndex >= state._modality;
+      if (!state._modality) return true;
+      var top = view.queryView(function (a) {
+        return !a.getParentView();
+      }, "parent") || view;
+      return (top.$view.style.zIndex || 0) >= state._modality;
     },
     canFocus: function (view) {
       return view.isVisible() && view.isEnabled() && !view.config.disabled && this._top_modal(view) && !view.queryView({
@@ -3616,7 +3821,6 @@
       if (check_view && !this._is_child_of(check_view, focus)) return false;
       if (!this._focus_logic("getPrev", check_view)) this._view = null;
     },
-    _translation_table: {},
     _is_child_of: function (parent, child) {
       if (!parent) return false;
       if (!child) return false;
@@ -3631,21 +3835,10 @@
     _keypress_timed: function () {
       if (this && this.callEvent) this.callEvent("onTimedKeyPress", []);
     },
-    _isNumPad: function (code) {
-      return code < 112 && code > 105;
-    },
     _keypress: function (e) {
-      var code = e.which || e.keyCode;
-      if (code > 95 && code < 106) code -= 48; //numpad support (numbers)
+      var code = e.which || e.keyCode; // numpad keys
 
-      code = this._translation_table[code] || code;
-      var ctrl = e.ctrlKey;
-      var shift = e.shiftKey;
-      var alt = e.altKey;
-      var meta = e.metaKey;
-
-      var codeid = this._keycode(code, ctrl, shift, alt, meta);
-
+      if (code > 95 && code < 106) code -= 48;
       var view = this.getFocus();
 
       if (view && view.callEvent) {
@@ -3657,11 +3850,7 @@
         }
       }
 
-      if (!this._isNumPad(code)) codeid = this._keycode(String.fromCharCode(code), ctrl, shift, alt, meta); //flag, that some non-special key was pressed
-
-      var is_any = !ctrl && !alt && !meta && code != 9 && code != 27 && code != 13;
-
-      if (this._check_keycode(codeid, is_any, e) === false) {
+      if (this._check_keycode(e) === false) {
         preventEvent(e);
         return false;
       }
@@ -3767,25 +3956,20 @@
     addHotKey: function (keys, handler, view) {
       assert(handler, "Hot key handler is not defined");
 
-      var pack = this._parse_keys(keys);
+      var code = this._parse_keys(keys);
 
-      assert(pack.letter, "Unknown key code");
       if (!view) view = null;
-      pack.handler = handler;
-      pack.view = view;
-
-      var code = this._keycode(pack.letter, pack.ctrl, pack.shift, pack.alt, pack.meta);
-
       if (!this._hotkeys[code]) this._hotkeys[code] = [];
 
-      this._hotkeys[code].push(pack);
+      this._hotkeys[code].push({
+        handler: handler,
+        view: view
+      });
 
       return keys;
     },
     removeHotKey: function (keys, func, view) {
-      var pack = this._parse_keys(keys);
-
-      var code = this._keycode(pack.letter, pack.ctrl, pack.shift, pack.alt, pack.meta);
+      var code = this._parse_keys(keys);
 
       if (!func && !view) delete this._hotkeys[code];else {
         var t = this._hotkeys[code];
@@ -3801,12 +3985,18 @@
         }
       }
     },
-    _keycode: function (code, ctrl, shift, alt, meta) {
-      return code + "_" + ["", ctrl ? "1" : "0", shift ? "1" : "0", alt ? "1" : "0", meta ? "1" : "0"].join("");
+    _keycode: function (key, ctrl, shift, alt, meta) {
+      //key can be undefined (browser autofill)
+      return (key || "").toLowerCase() + "_" + ["", ctrl ? "1" : "0", shift ? "1" : "0", alt ? "1" : "0", meta ? "1" : "0"].join("");
     },
-    _check_keycode: function (code, is_any, e) {
+    _check_keycode: function (e) {
+      var keyCode = e.which || e.keyCode;
+      var is_any = !e.ctrlKey && !e.altKey && !e.metaKey && keyCode != 9 && keyCode != 27 && keyCode != 13;
+
+      var code = this._keycode(e.key, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
+
       var focus = this.getFocus();
-      if (this._hotkeys[code]) return this._process_calls(this._hotkeys[code], focus, e);else if (is_any && this._hotkeys["ANY_0000"]) return this._process_calls(this._hotkeys["ANY_0000"], focus, e);
+      if (this._hotkeys[code]) return this._process_calls(this._hotkeys[code], focus, e);else if (is_any && this._hotkeys["any_0000"]) return this._process_calls(this._hotkeys["any_0000"], focus, e);
       return true;
     },
     _process_calls: function (calls, focus, e) {
@@ -3824,30 +4014,18 @@
     },
     _parse_keys: function (keys) {
       var controls = this._controls;
-      var parts = keys.toLowerCase().split(/[+\-_]/);
+      var parts = keys.toLowerCase().split(/[ +\-_]/);
       var ctrl, shift, alt, meta;
       ctrl = shift = alt = meta = 0;
       var letter = "";
 
       for (var i = 0; i < parts.length; i++) {
         if (parts[i] === "ctrl") ctrl = 1;else if (parts[i] === "shift") shift = 1;else if (parts[i] === "alt") alt = 1;else if (parts[i] === "command") meta = 1;else {
-          if (controls[parts[i]]) {
-            var code = controls[parts[i]];
-            if (this._isNumPad(code)) letter = code.toString();else letter = String.fromCharCode(code);
-          } else {
-            letter = parts[i];
-          }
+          letter = controls[parts[i]] || parts[i];
         }
       }
 
-      return {
-        letter: letter.toUpperCase(),
-        ctrl: ctrl,
-        shift: shift,
-        alt: alt,
-        meta: meta,
-        debug: keys
-      };
+      return this._keycode(letter, ctrl, shift, alt, meta);
     },
     getState: function (node, children) {
       children = children || false;
@@ -3913,7 +4091,12 @@
         }
 
         var top = view.getTopParentView();
-        if (top && top.setPosition) top._hide();
+
+        if (top && top.setPosition) {
+          if (fullscreen._fullscreen == top) fullscreen.exit();
+
+          top._hide();
+        }
       }
     });
     UIManager.addHotKey("shift+tab", UIManager._tab_logic);
@@ -3984,7 +4167,8 @@
   var Destruction = {
     $init: function () {
       //wrap in object to simplify removing self-reference
-      var t = this._destructor_handler = {
+      //submenu can trigger this handler two times, preserve a single destructor reference
+      var t = this._destructor_handler = this._destructor_handler || {
         obj: this
       }; //register self in global list of destructors
 
@@ -4037,8 +4221,9 @@
       if (this.data && this.data.destructor) this.data.destructor();
       if (this.unbind) this.unbind();
       this.data = null;
+      this._parent_cell = null;
       this._viewobj = this.$view = this._contentobj = this._dataobj = null;
-      this._evs_events = this._evs_handlers = {}; //remove focus from destructed view
+      this._evs_events = this._evs_handlers = this._evs_map = {}; //remove focus from destructed view
 
       if (UIManager._view == this) UIManager._view = null;
       var url = config.url;
@@ -4535,6 +4720,11 @@
             this._settings.hidden = false;
             this.adjust();
 
+            if (this.callEvent) {
+              this.callEvent("onViewShow", []);
+              if (this._signal_hidden_cells) _each(this, this._signal_hidden_cells);
+            }
+
             this._render_hidden_views();
           }
         } else {
@@ -4561,7 +4751,7 @@
       }
     },
     _onKeyPress: function (code, e) {
-      var target = e.srcElement || e.target,
+      var target = e.target,
           role = target.getAttribute("role");
 
       if ((code === 13 || code === 32) && (role == "button" || role == "tab") && !this._settings.disabled) {
@@ -4728,7 +4918,7 @@
         role: "alert",
         "aria-atomic": "true"
       });
-      this._contentobj.className = "webix_tooltip";
+      this._viewobj.className = this._css_name;
       insertBefore(this._contentobj, document.body.firstChild, document.body);
     },
     adjust: function () {},
@@ -4744,9 +4934,10 @@
         this.callEvent("onAfterRender", []);
       }
     },
+    _css_name: "webix_tooltip",
     css_setter: function (value) {
       if (_typeof(value) === "object") value = createCss(value);
-      this._viewobj.className = "webix_tooltip " + value;
+      this._viewobj.className = this._css_name + " " + value;
       return value;
     },
     //show tooltip
@@ -4812,6 +5003,7 @@
           template: value
         };
         if (_typeof(value) !== "object") value = {};
+        if (value.overflow && isUndefined(value.template)) value.template = "";
 
         this._init_tooltip_once();
 
@@ -4845,11 +5037,13 @@
 
       return null;
     },
-    $tooltipMove: function (t, e, text) {
-      TooltipControl._tooltip.hide();
-
-      clearTimeout(TooltipControl._before_show_delay);
-      TooltipControl._before_show_delay = delay(this._show_tooltip, this, [t, e, text], TooltipControl.delay);
+    $tooltipMove: function (t, e, c) {
+      var tooltip = this._settings.tooltip;
+      var overflow = isUndefined(tooltip.overflow) ? TooltipControl.overflow : tooltip.overflow;
+      var time = isUndefined(tooltip.delay) ? TooltipControl.delay : tooltip.delay;
+      var text = overflow ? c.overflow : c.first;
+      if (time > 0) TooltipControl._hide_tooltip();
+      TooltipControl._before_show_delay = delay(this._show_tooltip, this, [t, e, text], time);
     },
     _show_tooltip: function (t, e, text) {
       var data = text || this._get_tooltip_data(t, e);
@@ -5325,7 +5519,10 @@
     accordionType: "accordion",
     optionHeight: 32,
     organogramLineColor: "#CCD7E6",
-    timelineColor: "#1CA1C1"
+    timelineColor: "#1CA1C1",
+    backColor: "#ffffff",
+    //colorboard
+    colorPadding: 4
   };
 
   var skin$1 = {
@@ -5396,7 +5593,10 @@
     accordionType: "accordion",
     optionHeight: 24,
     organogramLineColor: "#CCD7E6",
-    timelineColor: "#1CA1C1"
+    timelineColor: "#1CA1C1",
+    backColor: "#ffffff",
+    //colorboard
+    colorPadding: 4
   };
 
   var skin$2 = {
@@ -5462,7 +5662,10 @@
     padding: 0,
     accordionType: "accordion",
     optionHeight: 32,
-    timelineColor: "#3498db"
+    timelineColor: "#3498db",
+    backColor: "#ffffff",
+    //colorboard
+    colorPadding: 4
   };
 
   var skin$3 = {
@@ -5528,7 +5731,10 @@
     padding: 0,
     accordionType: "accordion",
     optionHeight: 23,
-    timelineColor: "#3498db"
+    timelineColor: "#3498db",
+    backColor: "#ffffff",
+    //colorboard
+    colorPadding: 4
   };
 
   var skin$4 = {
@@ -5594,7 +5800,10 @@
     padding: 0,
     accordionType: "accordion",
     optionHeight: 32,
-    timelineColor: "#b300b3"
+    timelineColor: "#b300b3",
+    backColor: "#393939",
+    //colorboard
+    colorPadding: 4
   };
 
   var $active, $name;
@@ -5629,8 +5838,7 @@
       deltaStep: 30,
       speed: "0ms",
       finish: 1500,
-      ellastic: true,
-      fastClick: true
+      ellastic: true
     },
     limit: function (value) {
       Touch._limited = value !== false;
@@ -5655,20 +5863,6 @@
         if (Touch._disabled || Touch._limited) return;
         return preventEvent(e);
       });
-      event$1(document.body, "touchstart", function (e) {
-        if (Touch._disabled || Touch._limited || !Touch.config.fastClick) return; //fast click mode for iOS
-        //To have working form elements Android must not block event - so there are no fast clicks for Android
-        //Selects still don't work with fast clicks
-
-        if (env.isSafari) {
-          var tag = e.srcElement.tagName.toLowerCase();
-          if (tag == "input" || tag == "textarea" || tag == "select" || tag == "label") return true;
-          Touch._fire_fast_event = true;
-          return preventEvent(e);
-        }
-      }, {
-        passive: false
-      });
 
       Touch._clear_artefacts();
 
@@ -5677,7 +5871,7 @@
     },
     _clear_artefacts: function () {
       Touch._start_context = Touch._current_context = Touch._prev_context = Touch._scroll_context = null;
-      Touch._scroll_mode = Touch._scroll_node = Touch._scroll_stat = this._long_touched = null; //remove(Touch._scroll);
+      Touch._scroll_mode = Touch._scroll_node = Touch._scroll_stat = Touch._long_touched = null; //remove(Touch._scroll);
       //Touch._scroll = [null, null];
 
       Touch._delta = {
@@ -5700,23 +5894,11 @@
     _touchend: function (e) {
       if (Touch._start_context) {
         if (!Touch._scroll_mode) {
-          if (!this._long_touched) {
+          if (!Touch._long_touched) {
             if (Touch._axis_y && !Touch._axis_x) {
               Touch._translate_event("onSwipeX");
             } else if (Touch._axis_x && !Touch._axis_y) {
               Touch._translate_event("onSwipeY");
-            } else {
-              if (env.isSafari && Touch._fire_fast_event) {
-                //need to test for mobile ff and blackbery
-                Touch._fire_fast_event = false;
-                var target = Touch._start_context.target; //dark iOS magic, without delay it can skip repainting
-
-                delay(function () {
-                  var click_event = document.createEvent("MouseEvents");
-                  click_event.initEvent("click", true, true);
-                  target.dispatchEvent(click_event);
-                });
-              }
             }
           }
         } else {
@@ -5793,10 +5975,16 @@
 
           Touch._init_scroller(delta); //apply scrolling
 
+        } else if (env.isMac) {
+          var _view = $$(Touch._start_context);
+
+          if (_view && _view.$hasYScroll && _view.$hasYScroll() && e.cancelable) {
+            return preventEvent(e);
+          }
         }
       }
 
-      return preventEvent(e);
+      if (Touch._scroll_mode && e.cancelable) return preventEvent(e);
     },
     _set_scroll_pos: function () {
       if (!Touch._scroll_node) return;
@@ -5893,7 +6081,14 @@
 
       Touch._init_scroll_node(Touch._scroll_node);
 
-      window.setTimeout(Touch._set_scroll_pos, 1);
+      window.setTimeout(function () {
+        Touch._set_scroll_pos();
+
+        if (Touch._scroll_stat && !Touch._scroll_stat.hidden) {
+          if (Touch._scroll[0]) Touch._scroll[0].style.visibility = "visible";
+          if (Touch._scroll[1]) Touch._scroll[1].style.visibility = "visible";
+        }
+      }, 0);
     },
     _create_scroll: function (mode, dy, py, dim) {
       if (dy - py < 2) {
@@ -5909,9 +6104,12 @@
       var scroll = create("DIV", {
         "class": "webix_scroll_" + mode
       }, "");
+      scroll.style.visibility = "hidden";
       scroll.style[dim] = Math.max(py * py / dy - 7, 10) + "px";
-      if (Touch._scroll_stat.left) if (mode === "x") scroll.style.left = Touch._scroll_stat.left + "px";else scroll.style.right = -Touch._scroll_stat.left + "px";
-      if (Touch._scroll_stat.hidden) scroll.style.visibility = "hidden";
+
+      if (Touch._scroll_stat.left) {
+        if (mode === "x") scroll.style.left = Touch._scroll_stat.left + "px";else scroll.style.right = -Touch._scroll_stat.left + "px";
+      }
 
       Touch._scroll_node.parentNode.appendChild(scroll);
 
@@ -5941,8 +6139,8 @@
         if (Touch._scroll_node) result = Touch._get_matrix(Touch._scroll_node);else if (view.getScrollState) {
           state = view.getScrollState();
           result = {
-            e: state.x,
-            f: state.y
+            e: -state.x,
+            f: -state.y
           };
         }
         callEvent("onAfterScroll", [result]);
@@ -5966,8 +6164,8 @@
       } else return true;
     },
     _touchstart: function (e) {
-      var target = e.target || window.event.srcElement;
-      if (Touch._disabled || target.tagName && target.tagName.toLowerCase() == "textarea" && target.offsetHeight < target.scrollHeight) return;
+      var target = e.target;
+      if (Touch._disabled) return;
       Touch._long_touched = null;
       Touch._scroll_context = Touch._start_context = mouse.context(e); // in "limited" mode we should have possibility to use slider
 
@@ -5988,10 +6186,11 @@
     },
     _long_touch: function () {
       if (Touch._start_context) {
+        Touch._long_touched = true;
+
         Touch._translate_event("onLongTouch");
 
-        callEvent("onClick", [Touch._start_context]);
-        Touch._long_touched = true; //Touch._clear_artefacts();
+        callEvent("onClick", [Touch._start_context]); //Touch._clear_artefacts();
       }
     },
     _stop_scroll: function (e, stop_mode) {
@@ -6103,7 +6302,7 @@
     },
     _get_context_m: function (e) {
       return {
-        target: e.target || e.srcElement,
+        target: e.target,
         x: e.pageX,
         y: e.pageY,
         time: new Date()
@@ -6116,6 +6315,7 @@
       Touch.$init(); //not full screen mode
 
       if (document.body.className.indexOf("webix_full_screen") == -1) Touch.limit(true);
+      if (env.isSafari) addStyle(".webix_view{ -webkit-overflow-scrolling: touch; }");
       if (window.MSCSSMatrix) addStyle(".webix_view{ -ms-touch-action: none; }");
     } else {
       var id = event$1(document.body, "touchstart", function (ev) {
@@ -6216,7 +6416,13 @@
     unlink: function (ctrl) {
       var index$$1 = this._drag_masters.find(ctrl);
 
-      if (index$$1 > -1) this._drag_masters[index$$1] = null;
+      if (index$$1 > -1) {
+        // if active view was destroyed, stop dnd
+        if (DragControl._active && DragControl._active.webix_drag == index$$1) DragControl._stopDrag(); // if last target was destroyed, reset it and continue dnd
+
+        if (DragControl._last && DragControl._last.webix_drop == index$$1) DragControl._last = null;
+        this._drag_masters[index$$1] = null;
+      }
     },
     _createTouchDrag: function (e) {
       var dragCtrl = DragControl;
@@ -6224,11 +6430,17 @@
       var master = this._getActiveDragMaster(); // for data items only
 
 
-      if (master && master._getDragItemPos) {
-        if (!dragCtrl._html) dragCtrl.createDrag(e);
+      if (master && master.$longTouchLimit) {
+        if (!dragCtrl._html && !dragCtrl.createDrag(e)) return;
+        e.longtouch_drag = true;
+        var pos$$1 = {
+          x: e.x,
+          y: e.y
+        };
+        var customPos = dragCtrl.$dragPos(pos$$1, e);
         var ctx = dragCtrl._drag_context;
-        dragCtrl._html.style.left = e.x + dragCtrl.left + (ctx.x_offset || 0) + "px";
-        dragCtrl._html.style.top = e.y + dragCtrl.top + (ctx.y_offset || 0) + "px";
+        dragCtrl._html.style.top = pos$$1.y + dragCtrl.top + (customPos || !ctx.y_offset ? 0 : ctx.y_offset) + "px";
+        dragCtrl._html.style.left = pos$$1.x + dragCtrl.left + (customPos || !ctx.x_offset ? 0 : ctx.x_offset) + "px";
       }
     },
 
@@ -6253,7 +6465,7 @@
         //if we have nested drag areas, use the top one and ignore the inner one
         if (DragControl._saved_event == e) return;
 
-        DragControl._preStartFalse();
+        DragControl._preStartFalse(e);
 
         DragControl.destroyDrag(e);
       }
@@ -6262,37 +6474,52 @@
       var evobj = env.mouse.context(e);
       DragControl._start_pos = evobj;
       DragControl._saved_event = e;
-      DragControl._webix_drag_mm = event$1(document.body, env.mouse.move, DragControl._startDrag);
+      var passive = env.touch ? {
+        passive: false
+      } : null;
+      DragControl._webix_drag_mm = event$1(document.body, env.mouse.move, DragControl._startDrag, passive);
       DragControl._webix_drag_mu = event$1(document, env.mouse.up, DragControl._preStartFalse); //need to run here, or will not work in IE
 
       addCss(document.body, "webix_noselect", 1);
     },
     //if mouse was released before moving - this is not a dnd, remove event handlers
-    _preStartFalse: function () {
+    _preStartFalse: function (e) {
       DragControl._clean_dom_after_drag();
+
+      DragControl._touch_animation = !e.cancelable;
     },
     //mouse was moved without button released - dnd started, update event handlers
     _startDrag: function (e) {
-      //prevent unwanted dnd
+      // check touch scroll animation
+      DragControl._touch_animation = !e.cancelable;
+
+      if (env.touch && DragControl._touch_animation) {
+        DragControl._clean_dom_after_drag();
+
+        return DragControl.destroyDrag(e);
+      } //prevent unwanted dnd
+
+
       var pos$$1 = env.mouse.context(e);
 
       var master = DragControl._getActiveDragMaster(); // only long-touched elements can be dragged
 
 
-      var longTouchLimit = master && env.touch && master._getDragItemPos && !Touch._long_touched;
+      var longTouchLimit = env.touch && master && master.$longTouchLimit && !Touch._long_touched;
       if (longTouchLimit || Math.abs(pos$$1.x - DragControl._start_pos.x) < 5 && Math.abs(pos$$1.y - DragControl._start_pos.y) < 5) return;
+      if (!DragControl._html && !DragControl.createDrag(DragControl._saved_event)) return DragControl._clean_dom_after_drag();
 
       DragControl._clean_dom_after_drag(true);
 
-      if (!DragControl._html) if (!DragControl.createDrag(DragControl._saved_event)) return;
       DragControl.sendSignal("start"); //useless for now
 
-      DragControl._webix_drag_mm = event$1(document.body, env.mouse.move, DragControl._moveDrag);
+      var passive = env.touch ? {
+        passive: false
+      } : null;
+      DragControl._webix_drag_mm = event$1(document.body, env.mouse.move, DragControl._moveDrag, passive);
       DragControl._webix_drag_mu = event$1(document, env.mouse.up, DragControl._stopDrag);
 
       DragControl._moveDrag(e);
-
-      if (env.touch) return preventEvent(e);
     },
     //mouse was released while dnd is active - process target
     _stopDrag: function (e) {
@@ -6300,7 +6527,7 @@
 
       DragControl._saved_event = null;
 
-      if (DragControl._last) {
+      if (DragControl._last && e) {
         //if some drop target was confirmed
         DragControl.$drop(DragControl._active, DragControl._last, e);
         DragControl.$dragOut(DragControl._active, DragControl._last, null, e);
@@ -6346,7 +6573,7 @@
           });
         }
 
-        dragCtrl._checkLand(evobj.target || evobj.srcElement, evobj);
+        dragCtrl._checkLand(evobj.target, evobj);
       }
       return preventEvent(e);
     },
@@ -6525,17 +6752,21 @@
   }; //global touch-drag handler
 
   attachEvent("onLongTouch", function (ev) {
-    if (DragControl._active) DragControl._createTouchDrag(ev);
+    if (DragControl._active && !DragControl._touch_animation) DragControl._createTouchDrag(ev);
   });
 
   var Movable = {
     move_setter: function (value) {
       if (value) {
+        exports.extend(this, Move, true);
         DragControl.addDrag(this._headobj ? this._headobj : this.$view, this);
+        delete this.move_setter; //prevent double initialization
       }
 
       return value;
-    },
+    }
+  };
+  var Move = {
     $dragCreate: function (object, e) {
       if (this.config.move) {
         var elOffset = offset(object);
@@ -6573,7 +6804,7 @@
           	abs positioned element, but because of attaching order modal layer will be on top anyway
           */
 
-          var index$$1 = this._settings.zIndex || zIndex(); //set topmost modal layer
+          var index$$1 = zIndex(this._settings.zIndex); //set topmost modal layer
 
           this._previous_modality = state._modality;
           state._modality = index$$1;
@@ -6587,15 +6818,10 @@
       } else {
         if (this._modal_cover) {
           remove(this._modal_cover);
-          document.body.style.overflow = ""; //restore topmost modal layer
-          //set delay, as current window closing may have not finished click event
-          //need to wait while it is not fully processed
+          this._modal_cover = null; //restore topmost modal layer
 
-          var topmost = this._previous_modality;
-          setTimeout(function () {
-            state._modality = topmost;
-          }, 1);
-          this._modal_cover = null;
+          state._modality = this._previous_modality;
+          if (!state._modality) document.body.style.overflow = "";
         }
       }
 
@@ -6697,7 +6923,6 @@
     }
   };
 
-  state._popups = _to_array();
   var api$3 = {
     name: "window",
     $init: function (config) {
@@ -6721,10 +6946,11 @@
 
       if (!config.id) config.id = uid();
 
-      _event(this._contentobj, "click", bind(this._ignore_clicks, this)); // IE8 does not allow to define event capturing
+      _event(this._contentobj, "click", this._ignore_clicks, {
+        bind: this
+      });
 
-
-      if (this._contentobj.addEventListener) _event(this._contentobj, "click", function () {
+      _event(this._contentobj, "click", function () {
         // brings a window to the front of other windows
         if (!this._settings.zIndex && this._settings.toFront) {
           this._viewobj.style.zIndex = zIndex();
@@ -6734,8 +6960,10 @@
         capture: true
       }); // hidden_setter handling
 
+
       if (config.modal) this._modal = true; // head_setter handling
 
+      if (config.headHeight) this._settings.headHeight = config.headHeight;
       if (config.close) this._settings.close = config.close;
       this.attachEvent("onViewMoveEnd", function () {
         if (this._settings.position) delete this._settings.position;
@@ -6746,7 +6974,6 @@
       var index$$1 = popups.find(this);
       if (index$$1 == -1) index$$1 = popups.length - 1;
       e.click_view = index$$1;
-      if (env.isIE8) e.srcElement.click_view = index$$1;
     },
     getChildViews: function () {
       if (this._head_cell) return [this._head_cell, this._body_cell];else return [this._body_cell];
@@ -6791,7 +7018,7 @@
 
       if (!this.callEvent("onBeforeShow", arguments)) return false;
       this._settings.hidden = false;
-      this._viewobj.style.zIndex = this._settings.zIndex || zIndex();
+      this._viewobj.style.zIndex = zIndex(this._settings.zIndex);
 
       if (this._settings.modal || this._modal) {
         this._modal_set(true);
@@ -6808,7 +7035,7 @@
         //if event was provided - get node info from it
         if (_typeof(node) == "object" && !node.tagName) {
           /*below logic is far from ideal*/
-          if (node.target || node.srcElement) {
+          if (node.target) {
             elPos = pos(node);
             dx = 20;
             dy = 5;
@@ -6908,6 +7135,8 @@
 
         var fixed = this._checkFixedPosition();
 
+        this.$view.style.position = fixed ? "fixed" : "absolute";
+
         if (fixed) {
           fin_y = fin_y - scrollTop;
           point_y = point_y - scrollTop;
@@ -6938,12 +7167,16 @@
     },
     _hide: function (e) {
       //do not hide modal windows
-      if (this._settings.hidden || this._settings.modal || this._hide_timer || e && e.showpopup) return; //do not hide popup, when we have modal layer above the popup
+      if (this._settings.hidden || this._settings.modal || !this._settings.escHide || this._hide_timer) return; //do not hide submenu when clicking on menu folder
 
-      if (state._modality && this._settings.zIndex <= state._modality) return; //ignore inside clicks and clicks in child-popups
+      if (e && e.showpopup && (e.showpopup == this._settings.id || this.getTopMenu && this.getTopMenu()._settings.id == e.showpopup)) return; //do not hide popup, when starting dnd with a long touch
+
+      if (e && env.touch && e.longtouch_drag) return; //do not hide popup, when we have modal layer above the popup
+
+      if (state._modality && this._viewobj.style.zIndex <= state._modality) return; //ignore inside clicks and clicks in child-popups
 
       if (e) {
-        var index$$1 = env.isIE8 ? e.srcElement.click_view : e.click_view;
+        var index$$1 = e.click_view;
         if (!index$$1 && index$$1 !== 0) index$$1 = -1;
 
         var myindex = state._popups.find(this);
@@ -6975,7 +7208,7 @@
           UIManager.setFocus(this._prev_focus);
           this._prev_focus = null;
         }
-      } //clean state
+      } // clear state
 
 
       var index$$1 = state._popups.find(this);
@@ -7041,8 +7274,10 @@
       var _this = this;
 
       if (value === false) return value;
+      var height = this._settings.headHeight;
       var text = typeof value == "string";
       var config = {
+        height: height,
         padding: 0,
         css: "webix_win_title",
         type: "header",
@@ -7068,6 +7303,7 @@
             right: 2
           },
           cols: [value, {
+            height: height,
             view: "icon",
             icon: "wxi-close",
             click: function () {
@@ -7081,6 +7317,10 @@
 
       state._parent_cell = this;
       this._head_cell = ui._view(value);
+
+      var template = this._head_cell._viewobj.querySelector(".webix_win_title>div");
+
+      if (template) template.style.lineHeight = height + "px";
 
       this._headobj.appendChild(this._head_cell._viewobj);
 
@@ -7241,9 +7481,24 @@
       hidden: true,
       autofocus: true,
       minWidth: 300,
-      minHeight: 200
+      minHeight: 200,
+      escHide: true
     }
-  };
+  }; //global longtouch handler
+
+  attachEvent("onLongTouch", function (ev) {
+    if (!ev || !ev.target) return;
+    var view = $$(ev.target);
+
+    if (view) {
+      view = view.queryView(function (a) {
+        return !a.getParentView();
+      }, "parent") || view;
+      var popups = state._popups;
+      var index$$1 = popups.find(view);
+      if (index$$1 !== -1) ev.click_view = index$$1;
+    }
+  });
   var view$3 = exports.protoUI(api$3, base$1.view, Movable, Modality, EventSystem, ResizeArea);
   var window$1 = {
     api: api$3,
@@ -7290,9 +7545,19 @@
     },
     _show_at: function (e) {
       var result = this.show(e, null, true);
-      if (result === false) return result; //event forced to close other popups|context menus
+      if (result === false) return result; // ignore contexmenu clicks for the popup or its body
 
-      callEvent("onClick", []);
+      var view = $$(e);
+
+      if (view) {
+        var top = view.queryView(function (a) {
+          return !a.getParentView();
+        }, "parent") || view;
+        if (top._ignore_clicks) top._ignore_clicks(e);
+      } //event forced to close other popups|context menus
+
+
+      callEvent("onClick", [e]);
       return preventEvent(e);
     },
     _show_on_mouse_out: true,
@@ -7386,7 +7651,7 @@
     /*! process ctrl+V pressing
      **/
     _paste: function (e) {
-      var trg = e.target || e.srcElement;
+      var trg = e.target;
 
       if (trg === this._area) {
         var text = this._area.value;
@@ -7401,18 +7666,118 @@
     }
   };
 
+  var csv$1 = {
+    escape: true,
+    delimiter: {
+      rows: "\n",
+      cols: "\t"
+    },
+    parse: function (text, sep) {
+      sep = sep || this.delimiter;
+      if (!this.escape) return this._split_clip_data(text, sep);
+      var lines = text.replace(/\n$/, "").split(sep.rows);
+      var i = 0;
+
+      while (i < lines.length - 1) {
+        if (this._substr_count(lines[i], "\"") % 2 === 1) {
+          lines[i] += sep.rows + lines[i + 1];
+          delete lines[i + 1];
+          i++;
+        }
+
+        i++;
+      }
+
+      var csv = [];
+
+      for (i = 0; i < lines.length; i++) {
+        if (typeof lines[i] !== "undefined") {
+          var tline = lines[i];
+          var start = 0;
+          var line = [];
+          var quoted = false;
+
+          for (var j = 0; j <= tline.length; j++) {
+            if (!quoted && tline[j] === sep.cols || j === tline.length) {
+              var chunk = tline.substr(start, j - start);
+
+              if (chunk[0] === chunk[chunk.length - 1] && chunk[0] === "\"") {
+                chunk = chunk.substr(1, chunk.length - 2).replace("\"\"", "\"");
+              }
+
+              line.push(chunk);
+              start = j + 1;
+            }
+
+            if (tline[j] === "\"") {
+              quoted = !quoted;
+              continue;
+            }
+          }
+
+          csv.push(line);
+        }
+      }
+
+      return csv;
+    },
+    _split_clip_data: function (text, sep) {
+      var lines = text.split(sep.rows);
+
+      for (var i = 0; i < lines.length; i++) {
+        lines[i] = lines[i].split(sep.cols);
+      }
+
+      return lines;
+    },
+
+    /*! counts how many occurances substring in string **/
+    _substr_count: function (string, substring) {
+      var arr = string.split(substring);
+      return arr.length - 1;
+    },
+    stringify: function (data, sep) {
+      sep = sep || this.delimiter;
+
+      if (!this.escape) {
+        for (var i = 0; i < data.length; i++) {
+          data[i] = data[i].join(sep.cols);
+        }
+
+        return data.join(sep.rows);
+      }
+
+      var reg = /\n|"|;|,/;
+
+      for (var _i = 0; _i < data.length; _i++) {
+        for (var j = 0; j < data[_i].length; j++) {
+          var chunk = data[_i][j];
+          if (chunk instanceof Date) data[_i][j] = i18n.parseFormatStr(chunk);else if (reg.test(chunk)) data[_i][j] = "\"" + chunk.toString().replace(/"/g, "\"\"") + "\"";
+        }
+
+        data[_i] = data[_i].join(sep.cols);
+      }
+
+      data = data.join(sep.rows);
+      return data;
+    }
+  };
+
   var CopyPaste = {
     clipboard_setter: function (value) {
+      if (env.touch) return value;
       if (value === true || value === 1) value = "modify";
-      this.attachEvent("onAfterSelect", function (id) {
-        var item = this.getItem(id);
-        var text = this.type.templateCopy(item);
-        clipbuffer.set(text, this);
-        clipbuffer.focus();
-        UIManager.setFocus(this);
+      this.attachEvent("onAfterSelect", this._sel_to_clip);
+      this.attachEvent("onAfterEditStop", function (v, ed) {
+        var sel = this.getSelectedId(true);
+        if (sel.length == 1 && ed.id == sel[0]) this._sel_to_clip();
       });
       this.attachEvent("onPaste", function (text) {
-        if (!isUndefined(this._paste[this._settings.clipboard])) this._paste[this._settings.clipboard].call(this, text);
+        if (!isUndefined(this._paste[this._settings.clipboard])) {
+          var data = csv$1.parse(text, this._settings.delimiter);
+
+          this._paste[this._settings.clipboard].call(this, data);
+        }
       });
       this.attachEvent("onFocus", function () {
         clipbuffer.focus();
@@ -7426,11 +7791,40 @@
       });
       return value;
     },
+    _sel_to_clip: function () {
+      var _this = this;
+
+      delay(function () {
+        //wait until editor is closed
+        if (!_this.getEditor || !_this.getEditor()) {
+          var sel = _this.getSelectedId(true);
+
+          var data = [];
+
+          for (var i = 0; i < sel.length; i++) {
+            var id = sel[i];
+
+            var item = _this.getItem(id);
+
+            data.push([_this.type.templateCopy(item)]);
+          }
+
+          var text = data.length === 1 ? data[0][0] : csv$1.stringify(data, _this._settings.delimiter);
+          clipbuffer.set(text, _this);
+          clipbuffer.focus();
+          UIManager.setFocus(_this);
+        }
+      });
+    },
     _paste: {
       // insert new item with pasted value
       insert: function (text) {
-        this.add({
-          value: text
+        var _this2 = this;
+
+        text.forEach(function (value) {
+          return _this2.add({
+            value: value
+          });
         });
       },
       // change value of each selected item
@@ -7438,7 +7832,8 @@
         var sel = this.getSelectedId(true);
 
         for (var i = 0; i < sel.length; i++) {
-          this.getItem(sel[i]).value = text;
+          if (isUndefined(text[i])) return;
+          this.getItem(sel[i]).value = text[i];
           this.refresh(sel[i]);
         }
       },
@@ -7480,13 +7875,12 @@
       }, true);
     },
     _getPageWidth: function (options) {
-      if (options.fit == "page") return Infinity;
       var size = options.size;
       var width = size[options.mode == "portrait" ? "width" : "height"];
       return Math.min(width * env.printPPI - 2 * env.printMargin);
     },
     _getTableArray: function (options, base, start) {
-      var maxWidth = this._getPageWidth(options);
+      var maxWidth = options.fit == "page" ? Infinity : this._getPageWidth(options);
 
       var xCount = options.xCount || this._getVisibleRange()._dx;
 
@@ -8711,7 +9105,7 @@
         this.importData(source, true);
         if (filter) this.silent(filter);
         if (this._on_sync) this._on_sync();
-        if (!(id && data && mode)) //clearall
+        if (!(id && data && mode) && !this.count()) //clearall
           this._marks = {};
         if (mode == "delete" && this._marks[id]) delete this._marks[id];
         this.callEvent("onSyncApply", []);
@@ -8833,12 +9227,12 @@
       this.callEvent("onClearAll", [soft]);
       this.refresh();
     },
-    //converts id to index
+    //converts index to id
     getIdByIndex: function (index) {
       assert(index >= 0, "DataStore::getIdByIndex Incorrect index");
       return this.order[index];
     },
-    //converts index to id
+    //converts id to index
     getIndexById: function (id) {
       if (!this.pull[id]) return -1;else return this.order.find(id); //slower than getIdByIndex
     },
@@ -8862,21 +9256,42 @@
     /*
     	sort data in collection
     		by - settings of sorting
-    	
-    	or
-    	
-    		by - sorting function
+    		or
+    		by - array of settings
+    		or
+    			by - sorting function
     		dir - "asc" or "desc"
-    		
-    	or
-    	
-    		by - property
+    		or
+    			by - property
     		dir - "asc" or "desc"
     		as - type of sortings
-    	
-    	Sorting function will accept 2 parameters and must return 1,0,-1, based on desired order
+    		Sorting function will accept 2 parameters and must return 1,0,-1, based on desired order
     */
     sort: function (by, dir, as) {
+      var _this = this;
+
+      var parameters;
+      var sort = by;
+
+      if (isArray(sort)) {
+        sort = sort.map(function (a) {
+          return _this._sort_init(a);
+        });
+        parameters = [sort];
+      } else {
+        sort = this._sort_init(by, dir, as);
+        parameters = [sort.by, sort.dir, sort.as, sort];
+      }
+
+      if (!this.callEvent("onBeforeSort", parameters)) return;
+      var sorter = this.sorting.create(sort);
+      this.order = this._sort_core(sorter, this.order);
+      if (this._filter_order && this._filter_order.length != this.order.length) this._filter_order = this._sort_core(sorter, this._filter_order); //repaint self
+
+      this.refresh();
+      this.callEvent("onAfterSort", parameters);
+    },
+    _sort_init: function (by, dir, as) {
       var sort = by;
       if (typeof by == "function") sort = {
         as: by,
@@ -8887,17 +9302,9 @@
         as: as
       };
       if (typeof sort.by == "string") sort.by = sort.by.replace(/#/g, "");
-      var parameters = [sort.by, sort.dir, sort.as, sort];
-      if (!this.callEvent("onBeforeSort", parameters)) return;
-      this.order = this._sort_core(sort, this.order);
-      if (this._filter_order && this._filter_order.length != this.order.length) this._filter_order = this._sort_core(sort, this._filter_order); //repaint self
-
-      this.refresh();
-      this.callEvent("onAfterSort", parameters);
+      return sort;
     },
-    _sort_core: function (sort, order) {
-      var sorter = this.sorting.create(sort);
-
+    _sort_core: function (sorter, order) {
       if (this.order.length) {
         var pre = order.splice(0, this.$freeze); //get array of IDs
 
@@ -9133,6 +9540,7 @@
     },
     sorting: {
       create: function (config) {
+        if (isArray(config)) return this._multi(config);
         return this._dir(config.dir, this._by(config.by, config.as));
       },
       as: {
@@ -9143,14 +9551,20 @@
         "date": function (a, b) {
           a = a - 0;
           b = b - 0;
+          if (isNaN(b)) return 1;
+          if (isNaN(a)) return -1;
           return a > b ? 1 : a < b ? -1 : 0;
         },
         "int": function (a, b) {
           a = a * 1;
           b = b * 1;
+          if (isNaN(b)) return 1;
+          if (isNaN(a)) return -1;
           return a > b ? 1 : a < b ? -1 : 0;
         },
         "string_strict": function (a, b) {
+          if (!b) return 1;
+          if (!a) return -1;
           a = a.toString();
           b = b.toString();
           return a > b ? 1 : a < b ? -1 : 0;
@@ -9165,6 +9579,23 @@
         "raw": function (a, b) {
           return a > b ? 1 : a < b ? -1 : 0;
         }
+      },
+      _multi: function (methods) {
+        var _this2 = this;
+
+        methods = methods.map(function (c) {
+          return _this2._dir(c.dir, _this2._by(c.by, c.as));
+        });
+        return function (a, b) {
+          var result,
+              i = 0;
+
+          do {
+            result = methods[i](a, b);
+          } while (!result && methods[++i]);
+
+          return result;
+        };
       },
       _by: function (prop, method) {
         if (!prop) return method;
@@ -9251,7 +9682,14 @@
         }
 
         if (state) {
-          if (state.sort) params.push("sort[" + state.sort.id + "]=" + encodeURIComponent(state.sort.dir));
+          if (state.sort) {
+            var sort = isArray(state.sort) ? state.sort : [state.sort];
+
+            for (var i = 0; i < sort.length; i++) {
+              params.push("sort[" + sort[i].id + "]=" + encodeURIComponent(sort[i].dir));
+            }
+          }
+
           if (state.filter) for (var key in state.filter) {
             var filterValue = state.filter[key];
             if (_typeof(filterValue) == "object") filterValue = ajax().stringify(filterValue); //server daterangefilter
@@ -9395,6 +9833,8 @@
               _this4.clearAll();
 
               _this4._onLoad(data);
+
+              _this4.data.callEvent("onAfterFilter", []);
             }, function (x) {
               return _this4._onLoadError(x);
             });
@@ -9429,6 +9869,8 @@
 
   var DataState = {
     getState: function () {
+      var _this = this;
+
       var cols_n = this.config.columns.length;
       var columns = this.config.columns;
       var settings = {
@@ -9446,11 +9888,15 @@
 
       settings.order = [].concat(this._hidden_column_order.length ? this._hidden_column_order : settings.ids);
 
-      if (this._last_sorted) {
-        settings.sort = {
-          id: this._last_sorted,
-          dir: this._last_order
-        };
+      if (this._last_order.length) {
+        var sort = this._last_order.map(function (id) {
+          return {
+            id: id,
+            dir: _this._last_sorted[id].dir
+          };
+        });
+
+        settings.sort = sort.length == 1 ? sort[0] : sort;
       } //this method will try to access the rendered values
       //just ignore it if grid is not rendered yet
 
@@ -9480,7 +9926,9 @@
     setState: function (obj) {
       var columns = this.config.columns;
       if (!obj) return;
-      this._last_sorted = null;
+      this.markSorting();
+      this._last_order = [];
+      this._last_sorted = {};
       this.blockEvent();
 
       if (obj.order && obj.order.length) {
@@ -9506,15 +9954,14 @@
 
       if (obj.ids) {
         var reorder = false;
-        var cols = this.config.columns;
 
-        for (var _i2 = 0; _i2 < cols.length; _i2++) {
-          if (cols[_i2].id != obj.ids[_i2]) reorder = true;
+        for (var _i2 = 0; _i2 < columns.length; _i2++) {
+          if (columns[_i2].id != obj.ids[_i2]) reorder = true;
         }
 
         if (reorder) {
           for (var _i3 = 0; _i3 < obj.ids.length; _i3++) {
-            cols[_i3] = this.getColumnConfig(obj.ids[_i3]) || cols[_i3];
+            columns[_i3] = this.getColumnConfig(obj.ids[_i3]) || columns[_i3];
           }
 
           this.refreshColumns();
@@ -9544,8 +9991,19 @@
       this.callEvent("onStructureUpdate", []);
 
       if (obj.sort) {
-        var column = columns[this.getColumnIndex(obj.sort.id)];
-        if (column) this._sort(obj.sort.id, obj.sort.dir, column.sort);
+        var sort = obj.sort,
+            multi = true;
+
+        if (!isArray(sort)) {
+          sort = [sort];
+          multi = false;
+        }
+
+        for (var _i5 = 0; _i5 < sort.length; _i5++) {
+          var _col = this.getColumnConfig(sort[_i5].id);
+
+          if (_col) this._sort(_col.id, sort[_i5].dir, _col.sort, multi);
+        }
       }
 
       if (obj.filter) {
@@ -9583,8 +10041,8 @@
         var select = obj.select;
         this.unselect();
 
-        for (var _i5 = 0; _i5 < select.length; _i5++) {
-          if (!select[_i5].row || this.exists(select[_i5].row)) this._select(select[_i5], true);
+        for (var _i6 = 0; _i6 < select.length; _i6++) {
+          if (!select[_i6].row || this.exists(select[_i6].row)) this._select(select[_i6], true);
         }
       }
 
@@ -9651,7 +10109,8 @@
       context.target = id;
       context.to = to;
       if (this._auto_scroll_delay) this._auto_scroll_delay = window.clearTimeout(this._auto_scroll_delay);
-      if (this._settings.dragscroll !== false) this._auto_scroll_delay = delay(function (pos$$1, id) {
+      var fragile = this.addRowCss && env.touch && !this._settings.prerender;
+      if (this._settings.dragscroll !== false && !fragile) this._auto_scroll_delay = delay(function (pos$$1, id) {
         this._drag_pause(id);
 
         this._auto_scroll(pos$$1, id);
@@ -9731,6 +10190,7 @@
         context.from.move(context.source, context.index, context.to, details);
       }
     },
+    $longTouchLimit: true,
     _getDragItemPos: function (pos$$1, e) {
       if (this.getItemNode) {
         var id = this.locate(e, true); //in some case, node may be outiside of dom ( spans in datatable for example )
@@ -9772,11 +10232,12 @@
           source: list,
           start: id
         };
-        context.fragile = this.addRowCss && env.touch && (env.isWebKit || env.isFF);
         context.from = this;
 
         if (this.callEvent("onBeforeDrag", [context, e])) {
-          if (Touch) Touch._start_context = null; //set drag representation
+          if (env.touch && this._touch_scroll == "touch") delay(function () {
+            Touch._start_context = null;
+          }); //set drag representation
 
           return context.html || this.$dragHTML(this.getItem(id), e, context);
         }
@@ -9801,13 +10262,16 @@
       if (context.target) target = this._target_to_id(context.target); //touch webkit will stop touchmove event if source node removed
 
       if (this._marked && this._marked != target) {
-        if (!context.fragile) this._remove_css([this._marked], "webix_drag_over", true);
+        this._remove_css([this._marked], "webix_drag_over", true);
+
         this._marked = null;
       }
 
       if (!this._marked && target) {
         this._marked = target;
-        if (!context.fragile) this._add_css([target], "webix_drag_over", true);
+
+        this._add_css([target], "webix_drag_over", true);
+
         return target;
       }
 
@@ -9846,7 +10310,7 @@
       if (this._close_branches) this._close_branches(context);
       if (this._inner_drag_only && this.getBranchIndex) this._drag_order_stored_left = this._drag_order_complex ? (this.getItem(context.start).$level + 1) * 20 + 8 : 0;
 
-      if (isArray(context.source) && !context.fragile) {
+      if (isArray(context.source)) {
         DragControl._setDragOffset(e);
 
         this._add_css(context.source, "webix_invisible");
@@ -9934,7 +10398,7 @@
     },
     $dragDestroy: function () {
       var context = DragControl._drag_context;
-      if (isArray(context.source) && !context.fragile) this._remove_css(context.source, "webix_invisible");
+      if (isArray(context.source)) this._remove_css(context.source, "webix_invisible");
       remove(DragControl._html);
     },
     _init_drop_area: function () {
@@ -10132,6 +10596,18 @@
       var box = editor.config.suggest = create_suggest(suggest);
       var boxobj = $$(box);
       if (boxobj && input) boxobj.linkInput(input);
+      return boxobj;
+    }
+  }
+
+  function attach_editend(suggest) {
+    if (suggest && suggest.setMasterValue && !suggest._editor_initialized) {
+      suggest._editor_initialized = true;
+      suggest.attachEvent("onValueSuggest", function () {
+        delay(function () {
+          callEvent("onEditEnd", []);
+        });
+      });
     }
   }
 
@@ -10176,7 +10652,8 @@
       setValue: function (value) {
         var input = this.getInputNode(this.node);
         input.value = value;
-        init_suggest(this, input);
+        var suggest = init_suggest(this, input);
+        attach_editend(suggest);
       },
       getInputNode: function () {
         return this.node.firstChild;
@@ -10314,6 +10791,7 @@
             pobj._linked = true;
           }
 
+          attach_editend(pobj);
           return pobj;
         }
 
@@ -10385,11 +10863,18 @@
   }, editors.popup);
   editors.combo = exports.extend({
     _create_suggest: function (config) {
+      var suggest, id;
+
       if (this.config.popup) {
-        return this.config.popup.config.id;
+        suggest = this.config.popup;
+        id = suggest.config.id;
       } else if (config) {
-        return create_suggest(config);
-      } else return this._shared_suggest(config);
+        id = create_suggest(config);
+        suggest = $$(id);
+      } else id = this._shared_suggest(config);
+
+      attach_editend(suggest);
+      return id;
     },
     _shared_suggest: function () {
       var e = editors.combo;
@@ -10476,7 +10961,10 @@
       return this.getPopup().getList();
     },
     popupInit: function (popup) {
+      popup._show_selection = function () {};
+
       popup.linkInput(document.body);
+      attach_editend(popup);
     },
     popupType: "richselect"
   }, editors.popup);
@@ -10586,15 +11074,19 @@
     },
     _init_edit_events_once: function () {
       //will close editor on any click outside
-      attachEvent("onEditEnd", bind(function () {
+      var e1 = attachEvent("onEditEnd", bind(function () {
         if (this._in_edit_mode) this.editStop();
       }, this));
-      attachEvent("onClick", bind(function (e) {
+      var e2 = attachEvent("onClick", bind(function (e) {
         //but ignore click which opens editor
         if (this._in_edit_mode && new Date() - this._edit_open_time > 200) {
-          if (!this._last_editor || this._last_editor.popupType || !e || !this._last_editor.node || !this._last_editor.node.contains(e.target || e.srcElement)) this.editStop();
+          if (!this._last_editor || this._last_editor.popupType || !e || !this._last_editor.node || !this._last_editor.node.contains(e.target)) this.editStop();
         }
-      }, this)); //property sheet has simple data object, without events
+      }, this));
+      this.attachEvent("onDestruct", function () {
+        detachEvent(e1);
+        detachEvent(e2);
+      }); //property sheet has simple data object, without events
 
       if (this.data.attachEvent) this.data.attachEvent("onIdChange", bind(function (oldid, newid) {
         this._changeEditorId(oldid, newid);
@@ -10788,7 +11280,7 @@
       //fake inputs
       if (!node.style) return;
 
-      var pos$$1 = this._cellPosition(id);
+      var pos$$1 = this._cellPosition(id, null, true);
 
       node.style.top = pos$$1.top + "px";
       node.style.left = pos$$1.left + "px";
@@ -11246,6 +11738,7 @@
       var labels = [];
       var missed = [];
       var order = this.branch[parent];
+      var groups = {};
 
       for (var i = 0; i < order.length; i++) {
         var data = this.getItem(order[i]);
@@ -11254,21 +11747,21 @@
           missed.push(data.id);
           continue;
         } else current = config.missing;
-        var current_id = level + "$" + current;
-        var ancestor = this.branch[current_id];
+        var ancestor = groups[current];
 
         if (!ancestor) {
-          var newitem = this.pull[current_id] = {
-            id: current_id,
+          var id = uid();
+          var newitem = this.pull[id] = {
+            id: id,
             value: current,
             $group: true,
             $row: config.row
           };
           if (this._scheme_init) this._scheme_init(newitem);
           labels.push(newitem);
-          ancestor = this.branch[current_id] = [];
+          ancestor = groups[current] = this.branch[id] = [];
           ancestor._formath = [];
-          topbranch.push(current_id);
+          topbranch.push(id);
         }
 
         ancestor.push(data.id);
@@ -11286,9 +11779,10 @@
         if (this.hasEvent("onGroupCreated")) this.callEvent("onGroupCreated", [group.id, group.value, this.branch[group.id]._formath]);
 
         if (config.footer) {
-          var id = "footer$" + group.id;
-          var footer = this.pull[id] = {
-            id: id,
+          var _id = "footer$" + group.id;
+
+          var footer = this.pull[_id] = {
+            id: _id,
             $footer: true,
             value: group.value,
             $level: level,
@@ -11412,7 +11906,7 @@
     },
     _get_tooltip_data: function (t, e) {
       var id,
-          node = e.target || e.srcElement;
+          node = e.target;
 
       while (node && !node.webix_tooltip) {
         id = node.getAttribute("webix_t_id");
@@ -11462,12 +11956,17 @@
     },
     removeOption: function (id) {
       var index$$1 = this.optionIndex(id);
-      var options = this._settings.options;
-      if (index$$1 !== -1) _power_array.removeAt.call(options, index$$1); // if we remove a selected option
 
-      if (this._settings.value == id) this._setNextVisible(options, index$$1);
-      this.refresh();
-      this.callEvent("onOptionRemove", [id, this._settings.value]);
+      if (index$$1 !== -1) {
+        var options = this._settings.options;
+
+        _power_array.removeAt.call(options, index$$1);
+
+        this.refresh(); // if we remove a selected option
+
+        if (this._settings.value == id) this._setNextVisible(options, index$$1);
+        this.callEvent("onOptionRemove", [id, this._settings.value]);
+      }
     },
     _setNextVisible: function (options, index$$1) {
       var size = options.length;
@@ -11683,7 +12182,7 @@
     },
     _navigation_helper: function (mode) {
       return function (view, e) {
-        var tag = e.srcElement || e.target; //ignore clipboard listener
+        var tag = e.target; //ignore clipboard listener
 
         if (!tag.getAttribute(
         /*@attr*/
@@ -11701,8 +12200,6 @@
             ctrl: e.ctrlKey
           });
         }
-
-        return true;
       };
     },
     moveSelection: function (mode, details, focus) {
@@ -12134,7 +12631,7 @@
       e = e || event;
       if (e.processed || !this._viewobj) return;
       e.processed = true;
-      var trg = e.target || e.srcElement; //IE8 can't modify event object
+      var trg = e.target; //IE8 can't modify event object
       //so we need to stop event bubbling to prevent double processing
 
       if (env.isIE8) {
@@ -12234,7 +12731,7 @@
     _setLinkEventHandler: function () {
       var h = [];
       if (this._navPanel) h[0] = event$1(this._navPanel, "click", bind(function (e) {
-        var elem = e.srcElement || e.target;
+        var elem = e.target;
         var found = false;
 
         while (elem != this._navPanel && !found) {
@@ -12374,6 +12871,9 @@
       }
 
       function check_pager_sizes(repeat) {
+        // reset topSplit - since now the pager is responsible for rendering
+        if (this.config.topSplit) this.config.topSplit = 0;
+
         if (pager.config.autosize && this.getVisibleCount) {
           var count = this.getVisibleCount();
 
@@ -12489,7 +12989,7 @@
 
         this._viewobj.setAttribute("aria-busy", "true");
 
-        if (!Touch.$active) {
+        if (!Touch.$active || this._touch_scroll == "native") {
           if (this.getScrollState) {
             var scroll = this.getScrollState();
 
@@ -12744,44 +13244,36 @@
       }, ""));
 
       this._dataobj = (this._dataobj || this._contentobj).firstChild;
-      if (!env.touch || env.touch === "native") _event(this._viewobj, "scroll", bind(function () {
-        if (this.callEvent) delay(function () {
+      if (this.callEvent && (!env.touch || this._touch_scroll == "native")) _event(this._viewobj, "scroll", function () {
+        delay(function () {
           this.callEvent("onAfterScroll", []);
         }, this);
-      }, this));
+      }, {
+        bind: this
+      });
     },
-
-    /*defaults:{
-    	scroll:true
-    },*/
+    _touch_scroll: "native",
     scroll_setter: function (value) {
       if (!value) return false;
       var auto = value === "auto";
       var marker = value == "x" ? "x" : value == "xy" ? "xy" : auto ? "xy" : "y";
 
-      if (Touch.$active && env.touch != "native") {
-        this._dataobj.setAttribute("touch_scroll", marker);
-
-        if (this.attachEvent) this.attachEvent("onAfterRender", bind(this._refresh_scroll, this));
-        this._touch_scroll = true;
+      if (env.$customScroll) {
+        temp$1.enable(this, marker);
       } else {
-        if (env.$customScroll) {
-          temp$1.enable(this, marker);
+        var node = this._dataobj.parentNode.style;
+
+        if (auto) {
+          node.overflowX = node.overflowY = "auto";
         } else {
-          var node = this._dataobj.parentNode.style;
+          if (marker.indexOf("x") != -1) {
+            this._scroll_x = true;
+            node.overflowX = "scroll";
+          }
 
-          if (auto) {
-            node.overflowX = node.overflowY = "auto";
-          } else {
-            if (marker.indexOf("x") != -1) {
-              this._scroll_x = true;
-              node.overflowX = "scroll";
-            }
-
-            if (marker.indexOf("y") != -1) {
-              this._scroll_y = true;
-              node.overflowY = "scroll";
-            }
+          if (marker.indexOf("y") != -1) {
+            this._scroll_y = true;
+            node.overflowY = "scroll";
           }
         }
       }
@@ -12805,58 +13297,14 @@
       this._settings.scroll = mode ? dir : false;
     },
     getScrollState: function () {
-      if (Touch.$active) {
-        var temp = Touch._get_matrix(this._dataobj);
-
-        return {
-          x: -temp.e,
-          y: -temp.f
-        };
-      } else return {
+      return {
         x: this._dataobj.parentNode.scrollLeft,
         y: this._dataobj.parentNode.scrollTop
       };
     },
     scrollTo: function (x, y) {
-      if (Touch.$active && env.touch != "native") {
-        y = Math.max(0, Math.min(y, this._dataobj.offsetHeight - this._content_height));
-        x = Math.max(0, Math.min(x, this._dataobj.offsetWidth - this._content_width));
-
-        Touch._set_matrix(this._dataobj, -x, -y, this._settings.scrollSpeed || "100ms");
-      } else {
-        this._dataobj.parentNode.scrollLeft = x;
-        this._dataobj.parentNode.scrollTop = y;
-      }
-    },
-    _refresh_scroll: function () {
-      if (this._settings.scroll.toString().indexOf("x") != -1) {
-        var x = this._dataobj.scrollWidth;
-
-        if (x) {
-          //in hidden state we will have a Zero scrollWidth
-          this._dataobj.style.width = "100%";
-          this._dataobj.style.width = this._dataobj.scrollWidth + "px";
-        }
-      }
-
-      if (Touch.$active && this._touch_scroll) {
-        Touch._clear_artefacts();
-
-        Touch._scroll_end();
-
-        var s = this.getScrollState();
-        var dx = this._dataobj.offsetWidth - this.$width - s.x;
-        var dy = this._dataobj.offsetHeight - this.$height - s.y; //if current scroll is outside of data area
-
-        if (dx < 0 || dy < 0) {
-          //scroll to the end of data area
-          var _x = dx < 0 ? Math.min(-dx - s.x, 0) : -s.x;
-
-          var y = dy < 0 ? Math.min(-dy - s.y, 0) : -s.y;
-
-          Touch._set_matrix(this._dataobj, _x, y, 0);
-        }
-      }
+      this._dataobj.parentNode.scrollLeft = x;
+      this._dataobj.parentNode.scrollTop = y;
     }
   };
 
@@ -12919,7 +13367,7 @@
           //hierarchy, need to check all
           this._select_check();
         } else this._selected.remove(id);
-      } else if (!id && !this.data.count() && !this.data._filter_order) {
+      } else if (!id && !this.data.count() && !this.data._filter_order && !this.data._filter_branch) {
         //remove selection for clearAll
         this._selected = _to_array();
       }
@@ -14087,108 +14535,16 @@
   Sparklines.types["spline"] = Spline;
   Sparklines.types["splineArea"] = SplineArea;
 
-  var csv$1 = {
-    escape: true,
-    delimiter: {
-      rows: "\n",
-      cols: "\t"
-    },
-    parse: function (text, sep) {
-      sep = sep || this.delimiter;
-      if (!this.escape) return this._split_clip_data(text, sep);
-      var lines = text.replace(/\n$/, "").split(sep.rows);
-      var i = 0;
-
-      while (i < lines.length - 1) {
-        if (this._substr_count(lines[i], "\"") % 2 === 1) {
-          lines[i] += sep.rows + lines[i + 1];
-          delete lines[i + 1];
-          i++;
-        }
-
-        i++;
-      }
-
-      var csv = [];
-
-      for (i = 0; i < lines.length; i++) {
-        if (typeof lines[i] !== "undefined") {
-          var tline = lines[i];
-          var start = 0;
-          var line = [];
-          var quoted = false;
-
-          for (var j = 0; j <= tline.length; j++) {
-            if (!quoted && tline[j] === sep.cols || j === tline.length) {
-              var chunk = tline.substr(start, j - start);
-
-              if (chunk[0] === chunk[chunk.length - 1] && chunk[0] === "\"") {
-                chunk = chunk.substr(1, chunk.length - 2).replace("\"\"", "\"");
-              }
-
-              line.push(chunk);
-              start = j + 1;
-            }
-
-            if (tline[j] === "\"") {
-              quoted = !quoted;
-              continue;
-            }
-          }
-
-          csv.push(line);
-        }
-      }
-
-      return csv;
-    },
-    _split_clip_data: function (text, sep) {
-      var lines = text.split(sep.rows);
-
-      for (var i = 0; i < lines.length; i++) {
-        lines[i] = lines[i].split(sep.cols);
-      }
-
-      return lines;
-    },
-
-    /*! counts how many occurances substring in string **/
-    _substr_count: function (string, substring) {
-      var arr = string.split(substring);
-      return arr.length - 1;
-    },
-    stringify: function (data, sep) {
-      sep = sep || this.delimiter;
-
-      if (!this.escape) {
-        for (var i = 0; i < data.length; i++) {
-          data[i] = data[i].join(sep.cols);
-        }
-
-        return data.join(sep.rows);
-      }
-
-      var reg = /\n|"|;|,/;
-
-      for (var _i = 0; _i < data.length; _i++) {
-        for (var j = 0; j < data[_i].length; j++) {
-          var chunk = data[_i][j];
-          if (chunk instanceof Date) data[_i][j] = i18n.parseFormatStr(chunk);else if (reg.test(chunk)) data[_i][j] = "\"" + chunk.toString().replace(/"/g, "\"\"") + "\"";
-        }
-
-        data[_i] = data[_i].join(sep.cols);
-      }
-
-      data = data.join(sep.rows);
-      return data;
-    }
-  };
-
   var TablePaste = {
     clipboard_setter: function (value) {
+      if (env.touch) return value;
       if (value === true || value === 1) value = "block";
       clipbuffer.init();
-      this.attachEvent("onSelectChange", this._sel_to_clip); // solution for clicks on selected items
+      this.attachEvent("onSelectChange", this._sel_to_clip);
+      this.attachEvent("onAfterEditStop", function (v, ed) {
+        var sel = this.getSelectedId(true);
+        if (sel.length == 1 && ed.row == sel[0].row) this._sel_to_clip();
+      }); // solution for clicks on selected items
 
       this.attachEvent("onItemClick", function () {
         if (document.activeElement && this.$view.contains(document.activeElement)) {
@@ -14201,10 +14557,17 @@
     },
     templateCopy_setter: template,
     _sel_to_clip: function () {
-      var data = this._get_sel_text();
+      var _this = this;
 
-      clipbuffer.set(data);
-      UIManager.setFocus(this);
+      delay(function () {
+        //wait until editor is closed
+        if (!_this.getEditor || !_this.getEditor()) {
+          var data = _this._get_sel_text();
+
+          clipbuffer.set(data);
+          UIManager.setFocus(_this);
+        }
+      });
     },
     _get_sel_text: function () {
       var data = [];
@@ -14301,7 +14664,7 @@
       if (this._settings.threeState) return this._tree_check_uncheck_3(id, mode !== null ? mode : "");
       var value,
           item = this.getItem(id),
-          trg = e ? e.target || e.srcElement : null; //read actual value from HTML tag when possible
+          trg = e ? e.target : null; //read actual value from HTML tag when possible
       //as it can be affected by dbl-clicks
 
       if (trg && trg.type == "checkbox") value = trg.checked ? true : false;else value = mode !== null ? mode : !item.checked;
@@ -14395,12 +14758,12 @@
 
       this._feed_common = this._feed_commonA;
     },
-    _feed_commonA: function (id, count, callback, url) {
+    _feed_commonA: function (from, count, callback, url, details, defer) {
       // branch loading
-      var details = count === 0 ? {
-        parent: encodeURIComponent(id)
+      details = count === 0 ? {
+        parent: encodeURIComponent(from)
       } : null;
-      return DataLoader.prototype._feed_common.call(this, id, count, callback, url, details);
+      return DataLoader.prototype._feed_common.call(this, from, count, callback, url, details, defer);
     },
     //load next set of data rows
     loadBranch: function (id, callback, url) {
@@ -14525,9 +14888,9 @@
 
         var sindex = _power_array.find.call(sbranch, sid);
 
-        if (tindex < 0) tindex = tbranch.length; //in the same branch
+        if (tindex < 0) tindex = tbranch.length; //in the same branch and same position
 
-        if (sbranch === tbranch && tindex === sindex) return; //same position
+        if (sbranch === tbranch && tindex === sindex) return new_id; //return ID
 
         _power_array.removeAt.call(sbranch, sindex);
 
@@ -15275,9 +15638,7 @@
         } else functor.call(this, this.getItem(key), false);
       }
     },
-    _sort_core: function (sort, order) {
-      var sorter = this.sorting.create(sort);
-
+    _sort_core: function (sorter, order) {
       for (var key in this.branch) {
         var bset = this.branch[key];
         var data = [];
@@ -15512,8 +15873,7 @@
       this._upload_area = this._contentobj.firstChild.appendChild(f);
 
       _event(this._viewobj, "drop", bind(function (e) {
-        this._drop(e);
-
+        this.$drop(e);
         preventEvent(e);
       }, this));
 
@@ -15566,7 +15926,9 @@
     // adding files by drag-n-drop
     $drop: function (e) {
       var files = e.dataTransfer.files;
-      var items = e.dataTransfer.items;
+      var items = e.dataTransfer.items; // non-file drop
+
+      if (!files.length) return;
 
       if (this.callEvent("onBeforeFileDrop", [files, e])) {
         items = items || files; //IE10+
@@ -15808,9 +16170,7 @@
       this.callEvent("onValues", []);
     },
     isDirty: function () {
-      if (this._is_form_dirty) return true;
-      if (this.getDirtyValues(1) === 1) return true;
-      return false;
+      return !!this._is_form_dirty || this.getDirtyValues(true) === true;
     },
     setDirty: function (flag) {
       this._is_form_dirty = flag;
@@ -15821,12 +16181,14 @@
 
       if (this._values) {
         for (var name in this.elements) {
-          var value = this.elements[name].getValue();
+          var view = this.elements[name];
+          var value = view.getValue();
+          var defaultValue = this._values[name];
+          var isDirty = view.$compareValue ? !view.$compareValue(defaultValue, value) : defaultValue != value;
 
-          if (this._values[name] != value) {
-            result[name] = value; //FIXME - used by isDirty
-
-            if (arguments[0]) return 1;
+          if (isDirty) {
+            result[name] = value;
+            if (arguments[0]) return true;
           }
         }
       }
@@ -15932,11 +16294,7 @@
       this._htmlmap = {}; //init map of rendered elements
       //we need to repaint area each time when view resized or scrolling state is changed
 
-      _event(this._viewobj, "scroll", bind(this._render_visible_rows, this));
-
-      if (env.touch) {
-        this.attachEvent("onAfterScroll", bind(this._render_visible_rows, this));
-      } //here we store IDs of elemenst which doesn't loadede yet, but need to be rendered
+      _event(this._viewobj, "scroll", bind(this._render_visible_rows, this)); //here we store IDs of elemenst which doesn't loadede yet, but need to be rendered
 
 
       this._unrendered_area = [];
@@ -16202,26 +16560,9 @@
     $init: function () {
       this._htmlmap = {};
 
-      if (Touch.$active) {
-        this.attachEvent("onBeforeScroll", function () {
-          this._in_touch_scroll = true;
-        });
-        this.attachEvent("onAfterScroll", function () {
-          this.render(null, null, "paint");
-          this._in_touch_scroll = false;
-        });
-        this.attachEvent("onTouchMove", function () {
-          if (this._in_touch_scroll) {
-            this.blockEvent();
-            this.render(null, null, "paint");
-            this.unblockEvent();
-          }
-        });
-      } else {
-        _event(this._viewobj, "scroll", bind(function () {
-          this.render(null, null, "paint");
-        }, this));
-      }
+      _event(this._viewobj, "scroll", bind(function () {
+        this.render(null, null, "paint");
+      }, this));
     },
     _sync_scroll: function (x, y, t) {
       if (this._settings.footer) Touch._set_matrix(this._footer.childNodes[1].firstChild, x, 0, t);
@@ -16344,7 +16685,7 @@
     }
   };
 
-  var version$1 = "7.0.0";
+  var version$1 = "8.1.0";
   var name$1 = "core";
 
   var errorMessage = "non-existing view for export";
@@ -16358,6 +16699,22 @@
     };
   }
 
+  function getHeaderText(view, header) {
+    var text = header.text;
+
+    if (header.contentId) {
+      var content = view.getHeaderContent(header.contentId);
+      if (content && !content.type.$icon) text = content.getValue(true);
+    }
+
+    return (text || "").toString().replace(/<[^>]*>/gi, "");
+  }
+
+  function getStyles(r, c, styles) {
+    //row index, column index, styles array
+    if (styles[r] && styles[r][c]) return styles[r][c];
+    return "";
+  }
   function getExportScheme(view, options) {
     var scheme = [];
     var h_count = 0,
@@ -16408,26 +16765,28 @@
     });
 
     if (options.flatTree) {
-      var flatKey = options.flatTree.id;
-      var copy$$1 = [].concat(options.flatTree.columns);
-      var fill = [];
-      var fillMode = !!options.flatTree.fill;
+      (function () {
+        var flatKey = options.flatTree.id;
+        var copy$$1 = [].concat(options.flatTree.columns);
+        var fill = [];
+        var fillMode = !!options.flatTree.fill;
 
-      for (var _i = 1; _i <= copy$$1.length; _i++) {
-        copy$$1[_i - 1].template = function (i) {
-          return function (obj) {
-            return obj.$level == i ? fill[i] = obj[flatKey] : fillMode && i < obj.$level ? fill[i] : "";
-          };
-        }(_i);
-      }
+        for (var _i = 1; _i <= copy$$1.length; _i++) {
+          copy$$1[_i - 1].template = function (i) {
+            return function (obj) {
+              return obj.$level == i ? fill[i] = obj[flatKey] : fillMode && i < obj.$level ? fill[i] : "";
+            };
+          }(_i);
+        }
 
-      var index = 0;
+        var index = 0;
 
-      for (var _i2 = columns.length - 1; _i2 >= 0; _i2--) {
-        if (columns[_i2].id === flatKey) index = _i2;
-      }
+        for (var _i2 = columns.length - 1; _i2 >= 0; _i2--) {
+          if (columns[_i2].id === flatKey) index = _i2;
+        }
 
-      columns = [].concat(columns.slice(0, index)).concat(copy$$1).concat(columns.slice(index + 1));
+        columns = [].concat(columns.slice(0, index)).concat(copy$$1).concat(columns.slice(index + 1));
+      })();
     }
 
     var treeColumn;
@@ -16467,21 +16826,19 @@
       }];else record.header = [].concat(record.header);
 
       for (var _i3 = 0; _i3 < record.header.length; _i3++) {
-        var hcell = record.header[_i3] || {};
-        var text = hcell.contentId ? view.getHeaderContent(hcell.contentId).getValue(true) : hcell.text;
-        record.header[_i3] = (text || "").toString().replace(/<[^>]*>/gi, "");
+        record.header[_i3] = record.header[_i3] ? getHeaderText(view, record.header[_i3]) : "";
       }
 
       h_count = Math.max(h_count, record.header.length);
 
-      if (view._settings.footer) {
+      if (view.config.footer) {
         var footer = column.footer || "";
         if (typeof footer == "string") footer = [{
           text: footer
         }];else footer = [].concat(footer);
 
         for (var _i4 = 0; _i4 < footer.length; _i4++) {
-          if (footer[_i4]) footer[_i4] = footer[_i4].contentId ? view.getHeaderContent(footer[_i4].contentId).getValue() : footer[_i4].text;else footer[_i4] = "";
+          footer[_i4] = footer[_i4] ? getHeaderText(view, footer[_i4]) : "";
         }
 
         record.footer = footer;
@@ -16500,7 +16857,7 @@
         scheme[_i5].header.push("");
       }
 
-      if (view._settings.footer) {
+      if (view.config.footer) {
         diff = f_count - scheme[_i5].footer.length;
 
         for (var _d = 0; _d < diff; _d++) {
@@ -16510,6 +16867,10 @@
     }
 
     return scheme;
+  }
+  function getFileName(name, extension) {
+    if (name) name = name.replace(/[/?\\<>:*|"]/g, "").substring(0, 150);
+    return "".concat(name || "Data", ".").concat(extension);
   }
   function getExportData(view, options, scheme) {
     var filterHTML = !!options.filterHTML;
@@ -16557,7 +16918,7 @@
           var column = scheme[_i6],
               cell = null; //spreadsheet can output math
 
-          if (options.math && item["$" + column.id] && item["$" + column.id].charAt(0) == "=" && !item["$" + column.id].match(/^=(image|link|sparkline)\(/i)) cell = item["$" + column.id];
+          if (options.math && item["$" + column.id] && item["$" + column.id].charAt(0) == "=" && !item["$" + column.id].match(/^=(image|sparkline)\(/i)) cell = item["$" + column.id];
 
           if (this._spans_pull) {
             var span = this.getSpan(item.id, column.id);
@@ -16631,7 +16992,7 @@
       assert(view, errorMessage);
       if (!view) return defer.reject(errorMessage);
       var node = view ? view.$view : toNode(id);
-      var filename = (options.filename || "Data") + ".png";
+      var filename = getFileName(options.filename, "png");
       window.html2canvas(node, {
         background: "#fff",
         logging: false,
@@ -16639,7 +17000,6 @@
       }).then(function (canvas) {
         var callback = function (data) {
           if (options.download !== false) download(data, filename);
-          canvas.remove();
           defer.resolve(data);
         };
 
@@ -16660,7 +17020,7 @@
     var scheme = getExportScheme(view, options);
     var result = getExportData(view, options, scheme);
     var data = getCsvData(result, scheme);
-    var filename = (options.filename || "Data") + ".csv";
+    var filename = getFileName(options.filename, "csv");
     var blob = new Blob(["\uFEFF" + data], {
       type: "text/csv"
     });
@@ -16674,46 +17034,58 @@
 
   var font = {};
   var toPDF = function (id, options) {
-    return require([env.cdn + "/extras/pdfjs.js", env.cdn + "/extras/html2canvas-1.0.min.js"]).then(function () {
-      options = options || {};
-      options.export_mode = "pdf";
-      options._export_font = font;
-      options.fontName = options.fontName || "pt-sans.regular";
-      options.display = options.display || "table";
-      id = isArray(id) ? id : [id];
-      var views = [];
+    options = options || {};
+    options.export_mode = "pdf";
+    options._export_font = font;
+    options.fontName = options.fontName || "pt-sans.regular";
+    id = isArray(id) ? id : [id];
+    var views = [];
 
-      for (var i = 0; i < id.length; i++) {
-        if (!id[i].id) id[i] = {
-          id: id[i]
-        };
-        var view = $$(id[i].id);
+    for (var i = 0; i < id.length; i++) {
+      if (!id[i].id) id[i] = {
+        id: id[i]
+      };
+      var view = $$(id[i].id);
+
+      if (view) {
         var viewOptions = exports.extend(id[i].options || {}, options);
-        if (view && view.$exportView) view = view.$exportView(viewOptions);
+        var display = viewOptions.display || "table";
+        if (viewOptions.display == "image") delete viewOptions.styles;
+        if (view.$exportView) view = view.$exportView(viewOptions); //$exportView returns array
 
-        if (view) {
-          if (viewOptions.display !== "table") {
-            views.push({
-              node: view.$view,
-              viewOptions: viewOptions
-            });
-            if (options.autowidth) options.width = Math.max(options.width || 0, view.$view.$width);
+        if (isArray(view)) {
+          views = views.concat(view);
+          if (options.autowidth) getAutowidth(viewOptions, options);
+        } else {
+          //display table should be first (in case of styles:true $exportView adds styles to the first view)
+          if (display == "table" || display == "all") {
+            if (view.data && view.data.pull) {
+              var scheme = getExportScheme(view, viewOptions);
+              views.push({
+                scheme: scheme,
+                exportData: getExportData(view, viewOptions, scheme),
+                viewOptions: viewOptions
+              });
+              if (options.autowidth) getAutowidth(view, options, scheme);
+            }
           }
 
-          if (viewOptions.display !== "image" && view.data && view.data.pull) {
-            var scheme = getExportScheme(view, viewOptions);
+          if (display == "image" || display == "all") {
+            var node = viewOptions._hidden ? cloneNodeWithStyles(view.$view) : view.$view;
             views.push({
-              scheme: scheme,
-              data: getExportData(view, viewOptions, scheme),
+              node: node,
               viewOptions: viewOptions
             });
-            if (options.autowidth) getAutowidth(scheme, options);
+            if (options.autowidth) getAutowidth(view, options);
           }
         }
-
-        assert(view, errorMessage);
       }
 
+      assert(view, errorMessage);
+    }
+
+    if (options.dataOnly) return views;
+    return require([env.cdn + "/extras/pdfjs.js", env.cdn + "/extras/html2canvas-1.0.min.js"]).then(function () {
       if (views.length == 0) return Deferred.reject(errorMessage);
 
       if (font[options.fontName]) {
@@ -16725,7 +17097,7 @@
         var defer = Deferred.defer();
         /* global pdfjs */
 
-        pdfjs.load(env.cdn + "/extras/" + options.fontName + ".ttf", function (err, buf) {
+        pdfjs.load(options.fontURL || env.cdn + "/extras/" + options.fontName + ".ttf", function (err, buf) {
           if (err) throw err;
           options._export_font = font[options.fontName] = new pdfjs.TTFFont(buf);
           defer.resolve(getPdfData(views, options).then(function (pdf) {
@@ -16738,7 +17110,7 @@
   };
 
   function getBlob(pdf, options) {
-    var filename = (options.filename || "Data") + ".pdf";
+    var filename = getFileName(options.filename, "pdf");
     var blob = new Blob([pdf.toString()], {
       type: "application/pdf"
     });
@@ -16760,7 +17132,7 @@
         if (viewOptions.textBefore) addText(doc, "before", viewOptions.textBefore);
         if (images[_i]) doc.image(images[_i], {
           align: "center"
-        });else addPDFTable(views[_i].scheme, views[_i].data, viewOptions, doc);
+        });else addPDFTable(views[_i], doc);
         if (viewOptions.textAfter) addText(doc, "after", viewOptions.textAfter);
         if (_i != views.length - 1) doc.pageBreak();
       }
@@ -16779,6 +17151,15 @@
   }
 
   function getPDFImage(node) {
+    var hidden = !document.body.contains(node);
+
+    if (hidden) {
+      //node is a cloneNode of the real view, so it shouldn't be visible
+      document.body.appendChild(node);
+      node.style.position = "absolute";
+      node.style.left = "-9999px";
+    }
+
     return window.html2canvas(node, {
       background: "#fff",
       logging: false,
@@ -16794,18 +17175,25 @@
       }
 
       return new pdfjs.Image(bytes.buffer);
+    }).finally(function () {
+      if (hidden) document.body.removeChild(node);
     });
   }
 
-  function getAutowidth(scheme, options) {
+  function getAutowidth(view, options, scheme) {
     var prop = options.orientation && options.orientation == "landscape" ? "height" : "width";
-    var width = 80; //paddings
+    var width;
 
-    for (var i = 0; i < scheme.length; i++) {
-      width += scheme[i].width;
-    }
+    if (scheme) {
+      width = 80; //paddings
 
-    options[prop] = Math.max(options[prop] || 0, width);
+      for (var i = 0; i < scheme.length; i++) {
+        width += scheme[i].width;
+      }
+    } else if (view.$width) width = view.$width;else //'view' can be local settings and we need to compare them with common ones
+      width = view[prop];
+
+    options[prop] = Math.max(options[prop] || 0, width || 0);
   }
 
   function addPDFDoc(options) {
@@ -16822,7 +17210,11 @@
     });
   }
 
-  function addPDFTable(scheme, data, options, doc) {
+  function addPDFTable(view, doc) {
+    var scheme = view.scheme;
+    var data = view.exportData;
+    var options = view.viewOptions;
+    var styles = view.styles;
     options.header = isUndefined(options.header) || options.header === true ? {} : options.header;
     options.footer = isUndefined(options.footer) || options.footer === true ? {} : options.footer;
     options.table = options.table || {}; //render table
@@ -16864,7 +17256,9 @@
         var header = table.tr(headerOps);
 
         for (var s = 0; s < scheme.length; s++) {
-          header.td(scheme[s].header[_i2].toString());
+          var _options = styles ? getStyles(_i2, s, styles) : {};
+
+          header.td(scheme[s].header[_i2].toString(), _options);
         }
       }
     } //render table data
@@ -16874,7 +17268,9 @@
       var row = table.tr({});
 
       for (var c = 0; c < data[r].length; c++) {
-        row.td(data[r][c]);
+        var _options2 = styles ? getStyles(r + h_count, c, styles) : {};
+
+        row.td(data[r][c], _options2);
       }
     } //render table footer
 
@@ -16890,10 +17286,13 @@
       });
 
       for (var _i3 = 0; _i3 < f_count; _i3++) {
+        var beforeCount = h_count + data.length;
         var footer = table.tr(footerOps);
 
         for (var _s = 0; _s < scheme.length; _s++) {
-          footer.td(scheme[_s].footer[_i3].toString());
+          var _options3 = styles ? getStyles(_i3 + beforeCount, _s, styles) : {};
+
+          footer.td(scheme[_s].footer[_i3].toString(), _options3);
         }
       }
     }
@@ -16961,6 +17360,21 @@
     } else return Deferred.resolve(doc.render());
   }
 
+  function cloneNodeWithStyles(node) {
+    var clone$$1 = node.cloneNode(false);
+
+    if (node.tagName) {
+      var styles = window.getComputedStyle(node);
+      clone$$1.style.cssText = styles.cssText;
+    }
+
+    for (var i = 0; i < node.childNodes.length; i++) {
+      clone$$1.appendChild(cloneNodeWithStyles(node.childNodes[i]));
+    }
+
+    return clone$$1;
+  }
+
   var toExcel = function (id, options) {
     options = options || {};
     options.export_mode = "excel";
@@ -16968,18 +17382,23 @@
     var views = [];
 
     for (var i = 0; i < id.length; i++) {
-      var view = $$(id[i]);
-      if (view && view.$exportView) view = view.$exportView(options);
-      if (view) views = views.concat(view);
-      assert(view, errorMessage); //spreadsheet and excelviewer require plain data output first
+      if (!id[i].id) id[i] = {
+        id: id[i]
+      };
+      var view = $$(id[i].id);
+      var viewOptions = exports.extend(id[i].options || {}, options);
+      if (view && view.$exportView) view = view.$exportView(viewOptions);
+      assert(view, errorMessage); //$exportView returns array
 
-      if (options.dataOnly) {
-        var scheme = getExportScheme(view, options);
-        views[i] = {
+      if (isArray(view)) views = views.concat(view);else if (view.data && view.data.pull) {
+        //spreadsheet and excelviewer require plain data output first
+        var scheme = getExportScheme(view, viewOptions);
+        views.push({
           scheme: scheme,
-          exportData: getExportData(view, options, scheme),
-          spans: options.spans ? getSpans(view, options) : []
-        };
+          exportData: getExportData(view, viewOptions, scheme),
+          spans: viewOptions.spans ? getSpans(view, viewOptions) : [],
+          viewOptions: viewOptions
+        });
       }
     }
 
@@ -16995,16 +17414,25 @@
           Names: []
         }
       };
-      var name = isArray(options.sheets) ? options.sheets : [options.name || "Data"];
 
-      for (var i = 0; i < views.length; i++) {
-        var scheme = views[i].scheme || getExportScheme(views[i], options);
-        var result = views[i].exportData || getExportData(views[i], options, scheme);
-        var spans = views[i].spans ? views[i].spans : options.spans ? getSpans(views[i], options) : [];
-        var ranges = views[i].ranges || [];
-        var styles = views[i].styles || [];
-        var data = getExcelData(result, scheme, spans, styles, options);
-        var sname = (name[i] || "Data" + i).replace(/[*?:[\]\\/]/g, "").replace(/&/g, "&amp;").substring(0, 31);
+      for (var _i = 0; _i < views.length; _i++) {
+        var _viewOptions = views[_i].viewOptions;
+        var _scheme = views[_i].scheme;
+        var result = views[_i].exportData;
+        var spans = views[_i].spans;
+        var ranges = views[_i].ranges || [];
+        var styles = views[_i].styles || [];
+        var data = getExcelData(result, _scheme, spans, styles, _viewOptions);
+
+        var sname = (_viewOptions.name || "Data" + (_i + 1)).replace(/[*?:[\]\\/]/g, "").replace(/&/g, "&amp;").substring(0, 31); //avoid name duplication
+
+
+        var k = _i;
+
+        while (wb.SheetNames.indexOf(sname) != -1) {
+          sname = "Data" + ++k;
+        }
+
         wb.SheetNames.push(sname);
         wb.Sheets[sname] = data;
         wb.Workbook.Names = wb.Workbook.Names.concat(ranges);
@@ -17017,7 +17445,7 @@
         bookSST: false,
         type: "binary"
       });
-      var filename = (options.filename || name.join(",")) + ".xlsx";
+      var filename = getFileName(options.filename, "xlsx");
       var blob = new Blob([str2array(xls)], {
         type: "application/xlsx"
       });
@@ -17074,37 +17502,7 @@
           r: R
         });
         var stringValue = cell.v.toString();
-        var isFormula = stringValue.charAt(0) === "="; // set type based on column's config
-        // skip headers and formula based cells
-
-        var header = (options.docHeader ? 2 : 0) + scheme[0].header.length;
-
-        if (R >= header && !isFormula) {
-          var column = scheme[C];
-          if (column.type) cell.t = types[column.type] || "";
-          if (column.format) cell.z = column.format;
-        } // set type based on cell's value
-
-
-        if (cell.v instanceof Date) {
-          cell.t = cell.t || "n";
-          cell.z = cell.z || XLSX.SSF[table][14];
-          cell.v = excelDate(cell.v);
-        } else if (!cell.t) {
-          if (typeof cell.v === "boolean") cell.t = "b";else if (typeof cell.v === "number" || parseFloat(cell.v) == cell.v) {
-            cell.v = cell.v * 1;
-            cell.t = "n";
-          } else {
-            // convert any other object to a string
-            cell.v = stringValue;
-
-            if (isFormula) {
-              cell.t = "n";
-              cell.f = cell.v;
-              delete cell.v;
-            } else cell.t = "s";
-          }
-        }
+        var isFormula = stringValue.charAt(0) === "=";
 
         if (styles) {
           var cellStyle = getStyles(R, C, styles);
@@ -17114,7 +17512,42 @@
             delete cellStyle.format;
           }
 
+          if (cellStyle.type) {
+            cell.t = types[cellStyle.type];
+            delete cellStyle.type;
+          }
+
           cell.s = cellStyle;
+        } // set type based on column's config
+        // skip headers and formula based cells
+
+
+        var header = (options.docHeader ? 2 : 0) + scheme[0].header.length;
+
+        if (R >= header && !isFormula) {
+          var column = scheme[C];
+          if (column.type && !cell.t) cell.t = types[column.type] || "";
+          if (column.format && !cell.z) cell.z = column.format;
+        } // set type based on cell's value
+
+
+        if (cell.v instanceof Date) {
+          cell.t = cell.t || "n";
+          cell.z = cell.z || XLSX.SSF[table][14];
+          cell.v = excelDate(cell.v);
+        } else if (isFormula) {
+          cell.t = cell.t || "n";
+          cell.f = cell.v.substring(1);
+          delete cell.v;
+        } else if (!cell.t) {
+          if (typeof cell.v === "boolean") cell.t = "b";else if (typeof cell.v === "number" || parseFloat(cell.v) == cell.v) {
+            cell.v = cell.v * 1;
+            cell.t = "n";
+          } else {
+            // convert any other object to a string
+            cell.v = stringValue;
+            cell.t = "s";
+          }
         }
 
         ws[cell_ref] = cell;
@@ -17137,12 +17570,6 @@
     }
 
     return heights;
-  }
-
-  function getStyles(r, c, styles) {
-    //row index, column index, styles array
-    if (styles[r] && styles[r][c]) return styles[r][c];
-    return "";
   }
 
   function getSpans(view, options) {
@@ -17215,7 +17642,8 @@
   }
 
   function excelDate(date) {
-    return Math.round(25569 + date / (24 * 60 * 60 * 1000));
+    var returnDateTime = 25569 + (date.getTime() - date.getTimezoneOffset() * 60 * 1000) / (1000 * 60 * 60 * 24);
+    return returnDateTime.toString().substr(0, 20);
   }
 
   function getColumnsWidths(scheme) {
@@ -17231,6 +17659,27 @@
   }
 
   function callback(config, result) {
+    // prompt
+    if (config.type.indexOf("prompt") != -1) {
+      if (result === false) {
+        config._promise.reject();
+      } else {
+        var inputBox = config._box.querySelector(".webix_popup_input");
+
+        var _input = inputBox.querySelector("input");
+
+        if (config.input.required && !_input.value) {
+          config.input.invalid = true;
+          addCss(inputBox, "webix_popup_invalid");
+          return;
+        } else {
+          result = _input.value || "";
+
+          config._promise.resolve(result);
+        }
+      }
+    }
+
     config.type.indexOf("confirm") != -1 && result === false ? config._promise.reject() : config._promise.resolve(result);
     var usercall = config.callback;
     if (usercall) usercall(result, config.details);
@@ -17244,9 +17693,10 @@
       e = e || window.event;
       var code = e.which || e.keyCode;
       var lastModalbox = modalbox.pull[modalbox.order[count - 1]];
-      if (code == 13 || code == 32) callback(lastModalbox, true);
+      var hasInput = lastModalbox.type.indexOf("prompt") != -1;
+      if (code == 13 || code == 32 && !hasInput) callback(lastModalbox, true);
       if (code == 27) callback(lastModalbox, false);
-      if (e.preventDefault) e.preventDefault();
+      if (!hasInput) preventEvent(e);
       return !(e.cancelBubble = true);
     }
   }
@@ -17294,6 +17744,10 @@
     return "<div role='button' tabindex='0' aria-label='" + text + "' class='webix_popup_button" + (className ? " " + className : "") + "' result='" + result + "' ><div>" + text + "</div></div>";
   }
 
+  function input(config) {
+    return "<div tabindex='0' class='webix_popup_input webix_el_text" + (config.required ? " webix_required" : "") + "'><input value='" + template.escape(config.value || "") + "' placeholder='" + template.escape(config.placeholder || "") + "'></input></div>";
+  }
+
   function info(text) {
     if (!t.area) {
       t.area = document.createElement("DIV");
@@ -17324,7 +17778,7 @@
     return text.id;
   }
 
-  function _boxStructure(config, ok, cancel) {
+  function _boxStructure(config, ok, cancel, hasInput) {
     var box = document.createElement("DIV");
     var css = config.css ? " " + config.css : "";
     box.className = "webix_modal_box webix_" + config.type + css;
@@ -17336,7 +17790,9 @@
     if (config.width) box.style.width = config.width + (rules.isNumber(config.width) ? "px" : "");
     if (config.height) box.style.height = config.height + (rules.isNumber(config.height) ? "px" : "");
     if (config.title) inner += "<div class=\"webix_popup_title\">" + config.title + "</div>";
-    inner += "<div class=\"webix_popup_text\"><span>" + (config.content ? "" : config.text) + "</span></div><div  class=\"webix_popup_controls\">";
+    inner += "<div class=\"webix_popup_text" + (hasInput ? " webix_popup_label" : "") + "\"><span>" + (config.content ? "" : config.text || "") + "</span></div>";
+    inner += "<div  class=\"webix_popup_controls\">";
+    if (hasInput) inner += input(config.input);
     if (cancel) inner += button(config.cancel || i18n.message.cancel, false);
     if (ok) inner += button(config.ok || i18n.message.ok, true, "confirm");
 
@@ -17356,9 +17812,22 @@
       box.childNodes[config.title ? 1 : 0].appendChild(node);
     }
 
+    if (config.type.indexOf("prompt") != -1) {
+      var inputBox = box.querySelector(".webix_popup_input");
+
+      var _input2 = inputBox.querySelector("input");
+
+      _input2.oninput = function () {
+        if (config.input.invalid) {
+          removeCss(inputBox, "webix_popup_invalid");
+          config.input.invalid = false;
+        }
+      };
+    }
+
     box.onclick = function (e) {
       e = e || window.event;
-      var source = e.target || e.srcElement;
+      var source = e.target;
       if (!source.className) source = source.parentNode;
 
       if (source.className.indexOf("webix_popup_button") != -1) {
@@ -17377,8 +17846,8 @@
   modalbox.pull = {};
   modalbox.order = [];
 
-  function _createBox(config, ok, cancel) {
-    var box = config.tagName ? config : _boxStructure(config, ok, cancel);
+  function _createBox(config, ok, cancel, hasInput) {
+    var box = config.tagName ? config : _boxStructure(config, ok, cancel, hasInput);
     var containerWidth = config.container ? config.container.offsetWidth : window.innerWidth || document.documentElement.offsetWidth;
     var containerHeight = config.container ? config.container.offsetHeight : window.innerHeight || document.documentElement.offsetHeight;
     if (config.container) box.style.position = "absolute";
@@ -17410,6 +17879,10 @@
 
   function boxPopup(config) {
     return _createBox(config);
+  }
+
+  function promptPopup(config) {
+    return _createBox(config, true, true, true);
   }
 
   function box_params(text, type, callback) {
@@ -17456,6 +17929,12 @@
     text.type = text.type || "alert";
     return boxPopup(text);
   }
+  function prompt() {
+    var text = box_params.apply(this, arguments);
+    text.type = text.type || "prompt";
+    text.input = text.input || {};
+    return promptPopup(text);
+  }
 
   modalbox.hide = function (id) {
     if (id && modalbox.pull[id]) {
@@ -17491,6 +17970,9 @@
 
       case "modalbox":
         return boxPopup(text);
+
+      case "prompt":
+        return promptPopup(text);
 
       default:
         return info(text);
@@ -17635,6 +18117,25 @@
       remove: "Remove",
       placeholder: "Type here..",
       moreComments: "More comments"
+    },
+    filter: {
+      less: "less",
+      lessOrEqual: "less or equal",
+      greater: "greater",
+      greaterOrEqual: "greater or equal",
+      contains: "contains",
+      notContains: "not contains",
+      equal: "equal",
+      notEqual: "not equal",
+      beginsWith: "begins with",
+      notBeginsWith: "not begins with",
+      endsWith: "ends with",
+      notEndsWith: "not ends with",
+      between: "between",
+      notBetween: "not between"
+    },
+    timeboard: {
+      seconds: "Seconds"
     }
   };
 
@@ -17810,7 +18311,7 @@
     strToDate: function (format, utc) {
       if (typeof format == "function") return format;
       var mask = format.match(/%[a-zA-Z]/g);
-      var splt = "var temp=date.split(/[^0-9a-zA-Z]+/g);";
+      var splt = "var temp=date.split(/[\\s\\./\\-\\:\\,]+/g); if(!temp.join('')){return ''}";
       var i, t, s;
 
       if (!i18n.calendar.monthShort_hash) {
@@ -17833,7 +18334,8 @@
         return function (date) {
           if (!date) return "";
           if (_typeof(date) == "object") return date;
-          var temp = date.split(/[^0-9a-zA-Z]+/g);
+          var temp = date.split(/[\s./\-:,]+/g);
+          if (!temp.join("")) return "";
           var set = [0, 0, 1, 0, 0, 0, 0];
 
           for (i = 0; i < mask.length; i++) {
@@ -17931,7 +18433,7 @@
         }
       }
 
-      var code = "set[0],set[1],set[2],set[3],set[4],set[5], set[6]";
+      var code = "set[0],set[1],set[2],set[3],set[4],set[5],set[6]";
       if (utc) code = " Date.UTC(" + code + ")";
       var temp = new Function("date", "i18n", "if (!date) return ''; if (typeof date == 'object') return date; var set=[0,0,1,0,0,0,0]; " + splt + " return new Date(" + code + ");");
       return function (v) {
@@ -17997,6 +18499,15 @@
 
         case "month":
           date.setMonth(date.getMonth() + inc);
+
+          this._correctDate(date, d, inc, function (d, d0) {
+            return d0.getMonth() == d.getMonth() && d0.getYear() == d.getYear();
+          });
+
+          break;
+
+        case "quarter":
+          date.setMonth(date.getMonth() + inc * 3);
 
           this._correctDate(date, d, inc, function (d, d0) {
             return d0.getMonth() == d.getMonth() && d0.getYear() == d.getYear();
@@ -18184,6 +18695,8 @@
     if (locale) {
       locale.priceSettings = copy(locale.priceSettings || locale);
       extend(i18n, locale);
+      delete i18n.calendar.monthShort_hash;
+      delete i18n.calendar.monthFull_hash;
     }
 
     for (var i = 0; i < helpers.length; i++) {
@@ -18339,7 +18852,6 @@
 
   env.printPPI = 96;
   env.printMargin = 0.75 * env.printPPI;
-  var margin = env.printMargin;
   var papers = {
     "a4": "A4",
     "a3": "A3",
@@ -18395,7 +18907,7 @@
     options.scroll = options.scroll || false;
     options.size = sizes[options.paper];
     options.margin = options.margin || options.margin === 0 ? options.margin : {};
-    margin = isNaN(options.margin * 1) ? margin : options.margin;
+    var margin = isNaN(options.margin * 1) ? env.printMargin : options.margin;
     options.margin = {
       top: options.margin.top || options.margin.top === 0 ? options.margin.top : margin,
       bottom: options.margin.bottom || options.margin.bottom === 0 ? options.margin.bottom : margin,
@@ -18454,6 +18966,89 @@
     options["doc" + group] = header;
   }
 
+  var filters = {
+    number: {
+      greater: function (a, b) {
+        return a > b;
+      },
+      less: function (a, b) {
+        return a < b;
+      },
+      greaterOrEqual: function (a, b) {
+        return a >= b;
+      },
+      lessOrEqual: function (a, b) {
+        return a <= b;
+      },
+      equal: function (a, b) {
+        return a == b;
+      },
+      notEqual: function (a, b) {
+        return a != b;
+      },
+      contains: function (a, b) {
+        return a.toString().toLowerCase().indexOf(b.toString().toLowerCase()) !== -1;
+      },
+      notContains: function (a, b) {
+        return a.toString().toLowerCase().indexOf(b.toString().toLowerCase()) === -1;
+      }
+    },
+    text: {
+      equal: function (a, b) {
+        return a.toLowerCase() === b.toLowerCase();
+      },
+      notEqual: function (a, b) {
+        return a.toLowerCase() !== b.toLowerCase();
+      },
+      contains: function (a, b) {
+        return a.toLowerCase().indexOf(b.toLowerCase()) !== -1;
+      },
+      notContains: function (a, b) {
+        return a.toLowerCase().indexOf(b.toLowerCase()) === -1;
+      },
+      beginsWith: function (a, b) {
+        return a.toLowerCase().lastIndexOf(b.toLowerCase(), 0) === 0;
+      },
+      notBeginsWith: function (a, b) {
+        return a.toLowerCase().lastIndexOf(b.toLowerCase(), 0) !== 0;
+      },
+      endsWith: function (a, b) {
+        return a.toLowerCase().indexOf(b.toLowerCase(), a.length - b.length) !== -1;
+      },
+      notEndsWith: function (a, b) {
+        return a.toLowerCase().indexOf(b.toLowerCase(), a.length - b.length) === -1;
+      }
+    },
+    date: {
+      greater: function (a, b) {
+        return a > b;
+      },
+      less: function (a, b) {
+        return a < b;
+      },
+      greaterOrEqual: function (a, b) {
+        return a >= b;
+      },
+      lessOrEqual: function (a, b) {
+        return a <= b;
+      },
+      equal: function (a, b) {
+        if (!a || !b) return false;
+        return a.valueOf() === b.valueOf();
+      },
+      notEqual: function (a, b) {
+        if (!a || !b) return true;
+        return a.valueOf() !== b.valueOf();
+      },
+      between: function (a, b) {
+        return (!b.start || a > b.start) && (!b.end || a < b.end);
+      },
+      notBetween: function (a, b) {
+        return !b.start || a <= b.start || !b.end || a >= b.end;
+      }
+    }
+  };
+
   var patterns = {
     phone: {
       mask: "+# (###) ###-####",
@@ -18466,152 +19061,6 @@
     date: {
       mask: "####-##-## ##:##",
       allow: /[0-9]/g
-    }
-  };
-
-  var fullscreen = {
-    set: function (view, config) {
-      config = config || {};
-      if (this._view) this.exit();
-      if ($$(view)) view = $$(view);else {
-        if (typeof view == "string") view = document.getElementById(view);
-        if (view instanceof Element) view = {
-          $view: view,
-          $html: true
-        };
-        assert(view, "Incorrect view for fullscreen mode");
-      }
-      this._view = view;
-      var viewConfig = view.config;
-
-      if (view.setPosition) {
-        this._pos = {
-          left: view.config.left,
-          top: view.config.top
-        };
-        view.setPosition(0, 0);
-        viewConfig.fullscreen = true;
-        view.resize();
-      } else {
-        this._fullscreen = ui({
-          view: "window",
-          head: this._getHeadConfig(config),
-          fullscreen: true,
-          //better resize logic
-          body: {
-            rows: []
-          }
-        });
-        if (viewConfig) this._sizes = {
-          width: viewConfig.width,
-          minWidth: viewConfig.minWidth,
-          maxWidth: viewConfig.maxWidth,
-          height: viewConfig.height,
-          minHeight: viewConfig.minHeight,
-          maxHeight: viewConfig.maxHeight
-        };
-
-        if (view.getParentView && view.getParentView()) {
-          this._parent = view.getParentView();
-          if (this._parent.index) this._pos = {
-            index: this._parent.index(view),
-            active: this._parent.getActiveId ? this._parent.getActiveId() == viewConfig.id : false
-          };
-        } else {
-          this._parent = view.$view.parentNode;
-          this._pos = create("div"); //save old position
-
-          this._parent.replaceChild(this._pos, view.$view);
-        }
-
-        this._fullscreen.getBody().addView(view.$html ? {
-          view: "template",
-          content: view.$view,
-          css: "webix_fullscreen_html"
-        } : view);
-
-        this._fullscreen.show();
-
-        this._setSizes(view);
-      }
-    },
-    exit: function () {
-      if (this._view) {
-        var viewConfig = this._view.config;
-
-        if (this._view.setPosition) {
-          viewConfig.fullscreen = false;
-
-          this._view.setPosition(this._pos.left, this._pos.top);
-
-          this._view.resize();
-        } else {
-          if (this._parent instanceof Element) {
-            this._view._parent_cell = null;
-            if (this._view._set_inner) this._view._set_inner(this._view.config);
-
-            this._parent.replaceChild(this._view.$view, this._pos);
-          } else {
-            if (!isUndefined(this._pos)) {
-              this._parent.addView(this._view, this._pos.index);
-
-              if (this._pos.active) this._view.show(false, false);
-            } else {
-              this._view._parent_cell = this._parent;
-
-              this._parent._replace(this._view);
-            }
-          }
-
-          this._setSizes(this._view, this._sizes); //prevent view destruction (with layout)
-
-
-          if (!this._view.$html) this._fullscreen.getBody()._cells = []; //we can't set head false with replace, so we need to close win
-
-          this._fullscreen.close();
-        }
-
-        this._clearValues();
-      }
-    },
-    _clearValues: function () {
-      delete this._parent;
-      delete this._view;
-      delete this._sizes;
-      delete this._pos;
-    },
-    _setSizes: function (view, sizes) {
-      if (!view.$html) {
-        sizes = sizes || {
-          height: 0,
-          minHeight: 0,
-          maxHeight: 0,
-          width: 0,
-          minWidth: 0,
-          maxWidth: 0
-        };
-        view.define(sizes);
-        view.resize();
-      }
-    },
-    _getHeadConfig: function (config) {
-      var _this = this;
-
-      if (config.head === false || _typeof(config.head) == "object") return config.head;else {
-        return {
-          cols: [{
-            template: config.head || "",
-            type: "header",
-            borderless: true
-          }, {
-            view: "icon",
-            icon: "wxi-close",
-            click: function () {
-              _this.exit();
-            }
-          }]
-        };
-      }
     }
   };
 
@@ -18947,6 +19396,7 @@
     if (!env.touch) return;
     addMeta("apple-mobile-web-app-capable", "yes");
     addMeta("viewport", "initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no");
+    if (!env.isMac) addStyle("body.webix_full_screen{ overflow-y: auto; }");
 
     var fix = function () {
       var x = window.innerWidth;
@@ -18975,7 +19425,7 @@
     textWaitDelay: 500,
     "summColumn": {
       getValue: function (node) {
-        return node.firstChild.innerHTML;
+        return node.innerText;
       },
       setValue: function () {},
       refresh: function (master, node, value) {
@@ -18988,7 +19438,7 @@
         if (value.template) result = value.template({
           value: result
         });
-        node.firstChild.innerHTML = result;
+        node.innerHTML = result;
       },
       trackCells: true,
       render: function (master, config) {
@@ -19033,7 +19483,7 @@
     },
     "textFilter": {
       getInputNode: function (node) {
-        return node.firstChild ? node.firstChild.firstChild : {
+        return node.querySelector("input") || {
           value: null
         };
       },
@@ -19054,7 +19504,7 @@
       },
       render: function (master, config) {
         if (this.init) this.init(config);
-        config.css = "webix_ss_filter";
+        config.css = (config.css || "") + " webix_ss_filter";
         return "<input " + (config.placeholder ? "placeholder=\"" + config.placeholder + "\" " : "") + "type='text'>";
       },
       _on_key_down: function (e) {
@@ -19073,7 +19523,7 @@
     },
     "selectFilter": {
       getInputNode: function (node) {
-        return node.firstChild ? node.firstChild.firstChild : {
+        return node.querySelector("select") || {
           value: null
         };
       },
@@ -19109,8 +19559,8 @@
           select.add(option);
         }
 
-        node.firstChild.innerHTML = "";
-        node.firstChild.appendChild(select);
+        node.innerHTML = "";
+        node.appendChild(select);
         if (value.value) this.setValue(node, value.value);
         node.onclick = preventEvent;
         select._comp_id = master._settings.id;
@@ -19119,7 +19569,7 @@
       },
       render: function (master, config) {
         if (this.init) this.init(config);
-        config.css = "webix_ss_filter";
+        config.css = (config.css || "") + " webix_ss_filter";
         return "";
       },
       _on_change: function () {
@@ -19296,10 +19746,10 @@
     },
     dataExport: {
       page: "Seite",
-      of: "aus"
+      of: "von"
     },
     PDFviewer: {
-      of: "aus",
+      of: "von",
       automaticZoom: "Automatisch Zoom",
       actualSize: "Aktuelles Ausmaß",
       pageFit: "Seite Ausmaß",
@@ -19359,6 +19809,25 @@
       remove: "Löschen",
       placeholder: "Geben Sie hier ein..",
       moreComments: "Mehr Kommentare"
+    },
+    filter: {
+      less: "weniger",
+      lessOrEqual: "weniger oder gleich",
+      greater: "mehr",
+      greaterOrEqual: "größer oder gleich",
+      contains: "enthält",
+      notContains: "nicht enthält",
+      equal: "gleich",
+      notEqual: "ungleich",
+      beginsWith: "beginnt mit",
+      notBeginsWith: "nicht beginnt mit",
+      endsWith: "endet mit",
+      notEndsWith: "nicht endet mit",
+      between: "zwischen",
+      notBetween: "nicht zwischen"
+    },
+    timeboard: {
+      seconds: "Sekunden"
     }
   };
 
@@ -19457,6 +19926,25 @@
       remove: "Suprimir",
       placeholder: "Escriba aquí..",
       moreComments: "Más comentarios"
+    },
+    filter: {
+      less: "menos",
+      lessOrEqual: "menor o igual",
+      greater: "mayor",
+      greaterOrEqual: "mayor o igual",
+      contains: "contiene",
+      notContains: "not contiene",
+      equal: "igual",
+      notEqual: "no es igual",
+      beginsWith: "comienza con",
+      notBeginsWith: "no comienza con",
+      endsWith: "termina con",
+      notEndsWith: "no termina con",
+      between: "entre",
+      notBetween: "no entre"
+    },
+    timeboard: {
+      seconds: "segundos"
     }
   };
 
@@ -19548,6 +20036,25 @@
       remove: "Effacer",
       placeholder: "Écrivez ici..",
       moreComments: "Plus de commentaires"
+    },
+    filter: {
+      less: "moins",
+      lessOrEqual: "inférieur ou égal",
+      greater: "plus grand",
+      greaterOrEqual: "supérieur ou égal",
+      contains: "contient",
+      notContains: "ne contient",
+      equal: "égal",
+      notEqual: "pas égal",
+      beginsWith: "commence par",
+      notBeginsWith: "ne commence par",
+      endsWith: "se termine par",
+      notEndsWith: "pas se termine par",
+      between: "entre",
+      notBetween: "pas entre"
+    },
+    timeboard: {
+      seconds: "secondes"
     }
   };
 
@@ -19646,6 +20153,25 @@
       remove: "Elimina",
       placeholder: "Digitare qui..",
       moreComments: "Altri commenti"
+    },
+    filter: {
+      less: "meno",
+      lessOrEqual: "minore o uguale",
+      greater: "maggiore",
+      greaterOrEqual: "maggiore o uguale",
+      contains: "contiene",
+      notContains: "non contiene",
+      equal: "uguale",
+      notEqual: "non uguale",
+      beginsWith: "inizia con",
+      notBeginsWith: "non inizia con",
+      endsWith: "finisce con",
+      notEndsWith: "non termina con",
+      between: "tra",
+      notBetween: "non tra"
+    },
+    timeboard: {
+      seconds: "secondi"
     }
   };
 
@@ -19741,6 +20267,25 @@
       remove: "削除",
       placeholder: "ここに入力..",
       moreComments: "その他のコメント"
+    },
+    filter: {
+      less: "レス",
+      lessOrEqual: "以下",
+      greater: "大きいです",
+      greaterOrEqual: "以上",
+      contains: "含まれています",
+      notContains: "含まれていません",
+      equal: "等しいです",
+      notEqual: "等しくありません",
+      beginsWith: "で始まります",
+      notBeginsWith: "ないで始まります",
+      endsWith: "で終わります",
+      notEndsWith: "で終わりではありません",
+      between: "間に",
+      notBetween: "いない間"
+    },
+    timeboard: {
+      seconds: "秒"
     }
   };
 
@@ -19839,6 +20384,25 @@
       remove: "Excluir",
       placeholder: "Digite aqui..",
       moreComments: "Mais comentários"
+    },
+    filter: {
+      less: "menos",
+      lessOrEqual: "menor ou igual",
+      greater: "maior",
+      greaterOrEqual: "maior ou igual",
+      contains: "contém",
+      notContains: "não contém",
+      equal: "igual",
+      notEqual: "não é igual",
+      beginsWith: "começa com",
+      notBeginsWith: "não começa com",
+      endsWith: "termina com",
+      notEndsWith: "não termina com",
+      between: "entre",
+      notBetween: "não entre"
+    },
+    timeboard: {
+      seconds: "segundos"
     }
   };
 
@@ -19937,6 +20501,25 @@
       remove: "去掉",
       placeholder: "在此输入..",
       moreComments: "更多评论"
+    },
+    filter: {
+      less: "减",
+      lessOrEqual: "少于或等于",
+      greater: "更大",
+      greaterOrEqual: "大于或等于",
+      contains: "包含",
+      notContains: "不包含",
+      equal: "等于",
+      notEqual: "不平等",
+      beginsWith: "开始于",
+      notBeginsWith: "不开始",
+      endsWith: "结束",
+      notEndsWith: "不是以",
+      between: "之间",
+      notBetween: "不在之间"
+    },
+    timeboard: {
+      seconds: "秒"
     }
   };
 
@@ -20028,6 +20611,25 @@
       remove: "Удалить",
       placeholder: "Введите текст..",
       moreComments: "Больше комментариев"
+    },
+    filter: {
+      less: "меньше",
+      lessOrEqual: "меньше или равно",
+      greater: "больше",
+      greaterOrEqual: "больше или равно",
+      contains: "содержит",
+      notContains: "не содержит",
+      equal: "равно",
+      notEqual: "не равно",
+      beginsWith: "начинается с",
+      notBeginsWith: "не начинается с",
+      endsWith: "заканчиватся",
+      notEndsWith: "не заканчиватся",
+      between: "между",
+      notBetween: "не между"
+    },
+    timeboard: {
+      seconds: "Секунды"
     }
   };
 
@@ -20123,6 +20725,25 @@
       remove: "Выдаліць",
       placeholder: "Пішыце тут..",
       moreComments: "Больш каментарыяў"
+    },
+    filter: {
+      less: "менш",
+      lessOrEqual: "менш або роўна",
+      greater: "больш",
+      greaterOrEqual: "больш або роўна",
+      contains: "змяшчае",
+      notContains: "не змяшчае",
+      equal: "роўныя",
+      notEqual: "не роўныя",
+      beginsWith: "пачынаецца з",
+      notBeginsWith: "не пачынаецца з",
+      endsWith: "заканчваецца",
+      notEndsWith: "не сканчаецца",
+      between: "паміж",
+      notBetween: "не паміж"
+    },
+    timeboard: {
+      seconds: "Секунды"
     }
   };
 
@@ -20225,7 +20846,17 @@
 
       _power_array.removeAt.call(this._cells, index$$1);
 
-      this.resizeChildren(true);
+      this._fix_hidden_cells(true);
+    },
+    _fix_hidden_cells: function (resize$$1) {
+      this._hiddencells = 0;
+
+      for (var i = 0; i < this._cells.length; i++) {
+        var cell = this._cells[i];
+        if (cell._settings.hidden || cell.$nospace) this._hiddencells++;
+      }
+
+      if (resize$$1) this.resizeChildren(true);
     },
     _replace: function (new_view, target_id) {
       if (isUndefined(target_id)) {
@@ -20257,9 +20888,10 @@
         if (!this._vertical_orientation) this._fix_vertical_layout(new_view);
       }
 
-      this.resizeChildren(true);
+      this._fix_hidden_cells(true);
+
       var form = this.elements ? this : this.getFormView();
-      if (form) form._recollect_elements();
+      if (form && !this._fill_data) form._recollect_elements();
       callEvent("onReconstruct", [this]);
     },
     _fix_vertical_layout: function (cell) {
@@ -20290,7 +20922,9 @@
           if (sub.name) delete form.getCleanValues()[sub.config.name];
         }, form, true);
         view.destructor();
-        this.resizeChildren(true);
+
+        this._fix_hidden_cells(true);
+
         if (form) form._recollect_elements();
       } else assert(false, "Attemp to remove not existing view: " + id);
 
@@ -20440,15 +21074,14 @@
 
         if (this._settings.visibleBatch && this._settings.visibleBatch != this._cells[i]._settings.batch && this._cells[i]._settings.batch) {
           this._cells[i]._settings.hidden = true;
-          this._hiddencells++;
         }
 
         if (!this._cells[i]._settings.hidden) {
           (this._dataobj || this._contentobj).appendChild(this._cells[i]._viewobj);
-
-          if (this._cells[i].$nospace) this._hiddencells++;
         }
       }
+
+      this._fix_hidden_cells();
 
       if (this._parse_cells_ext_end) this._parse_cells_ext_end(collection);
     },
@@ -20746,7 +21379,7 @@
         this._viewobj.appendChild(this._dataobj);
       } else this._dataobj.className += " webix_template";
 
-      this.attachEvent("onAfterRender", this._correct_width_scroll);
+      this.attachEvent("onAfterRender", this._correct_height);
     },
     setValues: function (obj, update) {
       this.data = update ? exports.extend(this.data, obj, true) : obj;
@@ -20805,16 +21438,6 @@
       }, this));
       return value;
     },
-    _correct_width_scroll: function () {
-      //we need to force auto height calculation after content change
-      //dropping the last_size flag will ensure that inner logic of $setSize will be processed
-      if (this._settings.autoheight) {
-        this._last_size = null;
-        this.resize();
-      }
-
-      if (this._settings.scroll && this._settings.scroll.indexOf("x") != -1) this._dataobj.style.width = this._dataobj.scrollWidth + "px";
-    },
     content_setter: function (config) {
       if (config) {
         this._not_render_me = true;
@@ -20823,7 +21446,7 @@
 
         this._dataobj.appendChild(toNode(config));
 
-        delay(this._correct_width_scroll, this);
+        this._correct_height();
       }
     },
     refresh: function () {
@@ -20856,6 +21479,14 @@
     $getSize: function (x, y) {
       if (this._settings.autoheight && (!this._settings.type || this._settings.type == "clean")) this._settings.height = this._get_auto_height();
       return base$1.api.$getSize.call(this, x, y);
+    },
+    _correct_height: function () {
+      //we need to force auto height calculation after content change
+      //dropping the last_size flag will ensure that inner logic of $setSize will be processed
+      if (this._settings.autoheight) {
+        this._last_size = null;
+        this.resize();
+      }
     },
     _get_auto_height: function () {
       var size;
@@ -20890,7 +21521,7 @@
     name: "scrollview",
     defaults: {
       scroll: "y",
-      scrollSpeed: "0ms"
+      scrollSpeed: "300ms"
     },
     $init: function () {
       this._viewobj.className += " webix_scrollview";
@@ -20921,9 +21552,6 @@
       var cy = Math.max(this._content_height, this._desired_size[2]);
 
       this._body_cell.$setSize(cx, cy);
-
-      this._dataobj.style.width = this._body_cell._content_width + "px";
-      this._dataobj.style.height = this._body_cell._content_height + "px";
 
       if (env.touch) {
         var scroll = this.getScrollState();
@@ -20965,7 +21593,7 @@
 
       if (typeof value == "string" && value.indexOf("native-") === 0) {
         this._native_scroll = 17;
-        value = value.replace("native-");
+        value = value.replace("native-", "");
         env.$customScroll = false;
       }
 
@@ -20978,9 +21606,9 @@
 
       this._body_cell = new_view;
 
-      this._bodyobj.appendChild(this._body_cell._viewobj);
+      this._dataobj.appendChild(this._body_cell._viewobj);
 
-      this.resize();
+      this.resizeChildren();
     },
     showView: function (id) {
       var topPos = $$(id).$view.offsetTop - $$(id).$view.parentNode.offsetTop;
@@ -21660,10 +22288,6 @@
         bind: this
       });
 
-      event$1(document.body, env.mouse.up, this._rsUp, {
-        bind: this
-      });
-
       var dir = this._getResizeDir();
 
       this._rs_started = false;
@@ -21690,6 +22314,8 @@
       this._viewobj.setAttribute("aria-grabbed", "false");
     },
     _rsDown: function (e) {
+      var _this = this;
+
       var cells = this._getResizerCells(); //some sibling can block resize
 
 
@@ -21708,6 +22334,11 @@
         this._viewobj.setAttribute("aria-dropeffect", "move");
 
         this._rsStart(e, cells[0]);
+
+        var handler = event$1(document.body, env.mouse.up, function (e) {
+          eventRemove(handler);
+          return _this._rsUp(e);
+        });
       }
     },
     _rsUp: function () {
@@ -21933,6 +22564,18 @@
     $init: function () {
       this._viewobj.className += " webix_view_align";
     },
+    _remove: function () {
+      this.body_setter({});
+    },
+    _replace: function (new_view) {
+      this._body_cell.destructor();
+
+      this._body_cell = new_view;
+
+      this._viewobj.appendChild(this._body_cell._viewobj);
+
+      this.resize();
+    },
     getChildViews: function () {
       return [this._body_cell];
     },
@@ -22098,7 +22741,7 @@
         var next = index$$1 ? index$$1 - 1 : 1;
 
         if (this._cells[next]) {
-          this._in_animation = false;
+          this._animation_promise = null;
 
           this._show(this._cells[next], false);
         }
@@ -22147,9 +22790,21 @@
       return next < active ? vx ? "bottom" : "right" : vx ? "top" : "left";
     },
     _show: function (obj, animation_options) {
+      var _this = this,
+          _arguments = arguments;
+
       var parent = this.getParentView();
-      if (parent && parent.getTabbar) parent.getTabbar().setValue(obj._settings.$id || obj._settings.id);
-      if (this._in_animation) return delay(this._show, this, [obj, animation_options], 100);
+
+      if (parent && parent.getTabbar) {
+        var tabBar = parent.getTabbar();
+        tabBar.blockEvent();
+        tabBar.setValue(obj._settings.$id || obj._settings.id);
+        tabBar.unblockEvent();
+      }
+
+      if (this._animation_promise) return this._animation_promise.then(function () {
+        return _this._show.apply(_this, _arguments);
+      });
 
       var _next_cell = -1;
 
@@ -22177,7 +22832,8 @@
 
         aniset.callback = function () {
           animate.breakLine(line, this._settings.keepViews);
-          this._in_animation = false;
+          this._animation_promise = null;
+          aniset.wait_animation.resolve();
           if (callback_original) callback_original.call(this);
           callback_original = aniset.master = aniset.callback = null;
           this.resize();
@@ -22189,7 +22845,7 @@
         this._render_activation(this.getActiveId());
 
         animate(line, aniset);
-        this._in_animation = true;
+        this._animation_promise = aniset.wait_animation = Deferred.defer();
       } else {
         // browsers which don't support transform and transition, or animate:false in config
         if (this._settings.keepViews) {
@@ -22402,6 +23058,8 @@
       this.setActiveIndex(Math.min(this._active_cell, this._cells.length - 1));
     },
     _initLayout: function () {
+      var _this = this;
+
       if (this._layout && this._layout.destructor) this._layout.destructor();
       var layout = "";
 
@@ -22436,9 +23094,12 @@
       this._cells = this._layout._cells;
       this._layout._show = bind(api$i._show, this);
       this._layout.adjustScroll = bind(api$i.adjustScroll, this);
-      attachEvent("onReconstruct", bind(function (view) {
-        if (view == this._layout) this._setScroll();
-      }, this));
+      var e1 = attachEvent("onReconstruct", function (view) {
+        if (view == _this._layout) _this._setScroll();
+      });
+      this.attachEvent("onDestruct", function () {
+        detachEvent(e1);
+      });
       this._contentobj = this._viewobj.firstChild;
     },
     _onKeyPress: function (code, e) {
@@ -22678,8 +23339,11 @@
 
       this._settings.head = false;
       this.$view.className += " webix_popup";
-      attachEvent("onClick", function (e) {
+      var clickHandler = attachEvent("onClick", function (e) {
         return _this._hide(e);
+      });
+      this.attachEvent("onDestruct", function () {
+        detachEvent(clickHandler);
       });
       this.attachEvent("onHide", this._hide_point);
     },
@@ -22717,7 +23381,7 @@
       document.body.appendChild(this._point_element = create("DIV", {
         "class": "webix_point_" + mode
       }, ""));
-      this._point_element.style.zIndex = zIndex();
+      this._point_element.style.zIndex = this._viewobj.style.zIndex;
       this._point_element.style.position = fixed ? "fixed" : "absolute";
       this._point_element.style.top = top + "px";
       this._point_element.style.left = left + "px";
@@ -22770,7 +23434,7 @@
           });
         }
 
-        if (view.setValues) return false;
+        if (view.setValues || view._fill_data) return false;
       });
 
       var old = this._values;
@@ -22973,17 +23637,21 @@
     $init: function (obj) {
       this.$ready.push(function () {
         var label = this._viewobj.firstChild.childNodes[0];
+        var body = this._viewobj.firstChild.childNodes[1];
 
-        if (!this._settings.label || !this._settings.labelWidth) {
+        if (!this._settings.label || !this._settings.labelWidth && this._settings.labelPosition != "top") {
           label.style.display = "none";
-          this._settings.paddingX = this._settings.paddingY = 0;
+          body.style.padding = "0 " + this._inputSpacing / 2 + "px";
+          this._settings.paddingX = this._inputSpacing;
+          this._settings.paddingY = 0;
           return;
         }
 
         if (this._settings.labelPosition == "top") {
           label.style.lineHeight = this._labelTopHeight - this._inputPadding + "px";
           label.className += " " + this.defaults.$cssName + "_label_top";
-        } else label.style.width = this._settings.paddingX + "px";
+          body.style.padding = "0 " + this._inputSpacing / 2 + "px";
+        } else label.style.width = this._settings.paddingX - this._inputSpacing / 2 + "px";
 
         label.style.textAlign = this._settings.labelAlign;
         if (this._settings.value) this.setValue(this._settings.value);
@@ -22991,8 +23659,14 @@
 
       if (obj.labelPosition != "top") {
         var lw = isUndefined(obj.labelWidth) ? this.defaults.labelWidth : obj.labelWidth;
-        obj.paddingX = lw - this._inputPadding * 2 + this._inputSpacing * 2;
-      } else obj.paddingY = this._labelTopHeight;
+        obj.paddingX = lw + this._inputSpacing;
+      } else {
+        obj.paddingY = this._labelTopHeight;
+        obj.paddingX = this._inputSpacing;
+      }
+    },
+    labelWidth_setter: function (value) {
+      return value ? Math.max(value, $active.dataPadding) : 0;
     },
     setBottomText: function (text) {
       var config = this._settings;
@@ -23014,7 +23688,7 @@
           "class": "webix_inp_bottom_label",
           role: config.invalid ? "alert" : "",
           "aria-relevant": "all",
-          style: "position:absolute; bottom:0px; padding:2px; background: white; left:" + this._settings.labelWidth + "px; "
+          style: "position:absolute; bottom:0px; padding:2px 0; background: white; left:" + (this._inputSpacing / 2 + (config.label ? config.labelWidth : 0)) + "px; "
         }, message);
 
         this._viewobj.appendChild(this._invalidMessage);
@@ -23398,7 +24072,6 @@
     defaults: {
       date: new Date(),
       //selected date, not selected by default
-      select: false,
       navigation: true,
       monthSelect: true,
       weekHeader: true,
@@ -24418,32 +25091,43 @@
   var api$t = {
     name: "colorboard",
     defaults: {
-      template: "<div style=\"width:100%;height:100%;background-color:{obj.val}\"></div>",
+      template: function (obj) {
+        return "<div class=\"webix_color_item\" style=\"background-color:".concat(obj.val, ";\"></div>");
+      },
       palette: null,
-      height: 220,
-      width: 220,
-      cols: 12,
+      height: 250,
+      width: 260,
+      cols: 11,
       rows: 10,
       minLightness: 0.15,
       maxLightness: 1,
-      navigation: true
+      navigation: true,
+      grayScale: true,
+      type: "material" // "classic"
+
     },
     $init: function () {
       _event(this._viewobj, "click", bind(function (e) {
-        var value = locate(e,
+        // prevent selection the main item container
+        var node = e.target.parentNode;
+        var value = locate(node,
         /*@attr*/
         "webix_val"); // locate can return null in case of drag
 
         if (value) {
-          this.setValue(value);
-          this.callEvent("onItemClick", [this._settings.value, e]);
-          this.callEvent("onSelect", [this._settings.value]);
+          var oldvalue = this._settings.value;
+          value = this.setValue(value);
+          this.callEvent("onItemClick", [value, e]);
+          if (value != oldvalue) this.callEvent("onSelect", [value]);
         }
       }, this));
 
       this.$view.setAttribute("role", "grid");
 
       this._viewobj.setAttribute("aria-readonly", "true");
+    },
+    _get_clear_palette: function () {
+      return ["#F34336", "#FF9700", "#FFEA3B", "#4CB050", "#009788", "#00BCD4", "#2196F3", "#3F51B5", "#673BB7", "#9C28B1", "#EA1E63"];
     },
     _set_item_focus: function () {
       if (!this.getValue()) this.moveSelection("up");
@@ -24491,132 +25175,159 @@
       this.$setValue(value, oldvalue);
       return value;
     },
-    _selectBox: null,
-    _getSelectBox: function () {
-      if (this._selectBox && this._selectBox.parentNode) {
-        return this._selectBox;
-      } else {
-        var div = this._selectBox = document.createElement("div");
-        div.className = "webix_color_selector";
-
-        this._viewobj.lastChild.appendChild(div);
-
-        return div;
-      }
-    },
     $setValue: function (value, oldvalue) {
       if (this.isVisible(this._settings.id)) {
-        var cell,
-            div,
-            ind,
-            parent,
-            style,
-            left = 0,
-            top = 0; //remove tabindex for previous selection
-
+        var cell, ind;
         if (oldvalue) ind = this._findIndex(oldvalue);
         if (!ind) ind = {
           row: 0,
           col: 0
         };
 
-        this._viewobj.lastChild.childNodes[ind.row].childNodes[ind.col].setAttribute("tabindex", "-1");
+        var oldCell = this._getCell(ind);
+
+        this._setSelection(oldCell, false);
 
         ind = this._findIndex(value);
 
         if (ind) {
-          cell = this._viewobj.lastChild.childNodes[ind.row].childNodes[ind.col];
-        }
-
-        if (cell && cell.parentNode && cell.parentNode.parentNode) {
-          parent = cell.parentNode;
-          left = cell.offsetLeft - parent.offsetLeft;
-          top = -(this.$height - (cell.offsetTop - parent.parentNode.offsetTop));
-          cell.setAttribute("tabindex", "0");
-          cell.setAttribute("aria-selected", "true");
-          cell.setAttribute("tabindex", "0");
-          cell.setAttribute("aria-selected", "true");
-        } else {
-          if (this._selectBox) this._selectBox.style.left = "-100px";
-
-          this._viewobj.lastChild.childNodes[0].childNodes[0].setAttribute("tabindex", "0");
-
-          return;
-        }
-
-        div = this._getSelectBox();
-        style = ["left:" + left + "px", "top:" + top + "px", "width:" + cell.style.width, "height:" + cell.style.height].join(";");
-
-        if (typeof div.style.cssText !== "undefined") {
-          div.style.cssText = style;
-        } else {
-          div.setAttribute("style", style);
+          cell = this._getCell(ind);
+          if (cell) this._setSelection(cell, true);
         }
       }
     },
+    _getCell: function (ind) {
+      return this._viewobj.lastChild.childNodes[ind.row].childNodes[ind.col];
+    },
+    _setSelection: function (cell, state) {
+      if (state) {
+        cell.setAttribute("tabindex", "0");
+        cell.setAttribute("aria-selected", "true");
+        addCss(cell, "webix_color_selected");
+      } else {
+        cell.setAttribute("tabindex", "-1");
+        cell.removeAttribute("aria-selected");
+        removeCss(cell, "webix_color_selected");
+      }
+    },
+
+    /* handle colors */
+    _numToHex: function (n) {
+      return color.toHex(n, 2);
+    },
+    _rgbToHex: function (r, g, b) {
+      return "#" + this._numToHex(Math.floor(r)) + this._numToHex(Math.floor(g)) + this._numToHex(Math.floor(b));
+    },
+    _hslToRgb: function (h, s, l) {
+      var r, g, b;
+
+      if (!s) {
+        r = g = b = l; // achromatic
+      } else {
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        r = this._hue2rgb(p, q, h + 1 / 3);
+        g = this._hue2rgb(p, q, h);
+        b = this._hue2rgb(p, q, h - 1 / 3);
+      }
+
+      return {
+        r: r * 255,
+        g: g * 255,
+        b: b * 255
+      };
+    },
+    _hue2rgb: function (p, q, t) {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;else if (t <= 1 / 2) return q;else if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;else return p;
+    },
+    _lightenRgb: function (rgb, lt) {
+      /*	color = color * alpha + background * (1 - alpha); */
+      var r = rgb[0] * lt + 255 * (1 - lt);
+      var g = rgb[1] * lt + 255 * (1 - lt);
+      var b = rgb[2] * lt + 255 * (1 - lt);
+      return {
+        r: r,
+        g: g,
+        b: b
+      };
+    },
+    _getGrayScale: function (colCount) {
+      var gray = [];
+      var val = 255,
+          step = val / colCount;
+
+      for (var i = 0; i < colCount; i++) {
+        val = Math.round(val > 0 ? val : 0);
+        gray.push(this._rgbToHex(val, val, val));
+        val -= step;
+      }
+
+      gray[gray.length - 1] = "#000000";
+      return gray;
+    },
     _initPalette: function (config) {
-      function numToHex(n) {
-        return color.toHex(n, 2);
-      }
+      /* default palette (material and custom) */
+      var clearColors = this._get_clear_palette();
 
-      function rgbToHex(r, g, b) {
-        return "#" + numToHex(Math.floor(r)) + numToHex(Math.floor(g)) + numToHex(Math.floor(b));
-      }
-
-      function hslToRgb(h, s, l) {
-        var r, g, b;
-
-        if (!s) {
-          r = g = b = l; // achromatic
-        } else {
-          var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-          var p = 2 * l - q;
-          r = hue2rgb(p, q, h + 1 / 3);
-          g = hue2rgb(p, q, h);
-          b = hue2rgb(p, q, h - 1 / 3);
-        }
-
-        return {
-          r: r * 255,
-          g: g * 255,
-          b: b * 255
-        };
-      }
-
-      function hue2rgb(p, q, t) {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1 / 6) return p + (q - p) * 6 * t;else if (t <= 1 / 2) return q;else if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;else return p;
-      }
-
-      function renderGrayBar(colCount) {
-        var gray = [],
-            val = 255,
-            step = val / colCount;
-
-        for (var i = 0; i < colCount; i++) {
-          val = Math.round(val > 0 ? val : 0);
-          gray.push(rgbToHex(val, val, val));
-          val -= step;
-        }
-
-        gray[gray.length - 1] = "#000000";
-        return gray;
-      }
+      config.cols = clearColors.length; // always use the same set
 
       var colors = [];
-      var colorRows = config.rows - 1;
-      var colorStep = 1 / config.cols;
-      var lightStep = (config.maxLightness - config.minLightness) / colorRows;
+      var colorRows = config.rows - 1; // a row is reserved for clear colors		
+
+      var lightStep = 1 / config.rows;
       var colorRange = null;
-      colors.push(renderGrayBar(config.cols));
+
+      if (this._settings.grayScale) {
+        var grayColors = this._getGrayScale(config.cols);
+
+        colors.push(grayColors.reverse()); // inverted order
+
+        lightStep = 1 / colorRows;
+        colorRows -= 1;
+      }
+
+      colors.push(clearColors);
+
+      for (var step = 0, lt = config.maxLightness; step < colorRows; step++) {
+        lt -= lightStep;
+        colorRange = [];
+
+        for (var col = 0; col < config.cols; col++) {
+          var clearRgb = color.toRgb(clearColors[col]);
+
+          var val = this._lightenRgb(clearRgb, lt);
+
+          colorRange.push(this._rgbToHex(val.r, val.g, val.b));
+        }
+
+        colors.push(colorRange);
+      }
+
+      this._settings.palette = colors;
+    },
+    _initOldPalette: function (config) {
+      /* old (classic) palette */
+      var colors = [];
+      var colorStep = 1 / config.cols;
+      var colorRows = config.rows;
+      var colorRange = null;
+
+      if (this._settings.grayScale) {
+        colors.push(this._getGrayScale(config.cols));
+        colorRows -= 1;
+      }
+
+      var lightStep = (config.maxLightness - config.minLightness) / colorRows;
 
       for (var step = 0, lt = config.minLightness; step < colorRows; step++) {
         colorRange = [];
 
         for (var c = 0, col = 0; c < config.cols; c++) {
-          var val = hslToRgb(col, 1, lt);
-          colorRange.push(rgbToHex(val.r, val.g, val.b));
+          var val = this._hslToRgb(col, 1, lt);
+
+          colorRange.push(this._rgbToHex(val.r, val.g, val.b));
           col += colorStep;
         }
 
@@ -24642,7 +25353,12 @@
           ind.col = this._viewobj.lastChild.childNodes[ind.row].childNodes.length - 1;
         }
         ind.row = Math.max(ind.row, 0);
-        if (ind.row >= 0) cell = this._viewobj.lastChild.childNodes[ind.row].childNodes[ind.col];
+
+        if (ind.row >= 0) {
+          // check if this is a last row
+          var row = this._viewobj.lastChild.childNodes[ind.row];
+          if (row) cell = row.childNodes[ind.col];
+        }
 
         if (cell) {
           value = cell.getAttribute(
@@ -24659,25 +25375,49 @@
         }
       }
     },
-    render: function () {
-      if (!this.isVisible(this._settings.id)) return;
-      if (!this._settings.palette) this._initPalette(this._settings);
-      var palette = this._settings.palette;
-      this.callEvent("onBeforeRender", []);
-      var config = this._settings,
-          itemTpl = template("<div role='gridcell' tabindex='-1' aria-label=\"{obj.val}\" style=\"width:{obj.width}px;height:{obj.height}px;\" " +
-      /*@attr*/
-      "webix_val" + "=\"{obj.val}\">" + (config.template || "") + "</div>"),
-          data = {
+    _renderRow: function (row, widths, height) {
+      var data = {
         width: 0,
         height: 0,
         val: 0
-      },
-          width = this.$width,
-          height = this.$height,
+      };
+      var rowHtml = "<div class=\"webix_color_row\" role=\"row\">";
+
+      for (var cell = 0; cell < row.length; cell++) {
+        data.width = widths[cell];
+        data.height = height;
+        data.val = row[cell];
+        rowHtml += this._renderItem(data);
+      }
+
+      rowHtml += "</div>";
+      return rowHtml;
+    },
+    _renderItem: function (obj) {
+      var colorTemplate = template(this._settings.template || "");
+      return "<div role=\"gridcell\" tabindex=\"-1\" aria-label=\"".concat(obj.val, "\" style=\"width:").concat(obj.width, "px;height:").concat(obj.height, "px;\" ",
+      /*@attr*/
+      "webix_val", "=\"").concat(obj.val, "\">").concat(colorTemplate(obj), "</div>");
+    },
+    render: function () {
+      if (!this.isVisible(this._settings.id)) return;
+      var type = this._settings.type;
+
+      if (!this._settings.palette) {
+        if (type === "classic") this._initOldPalette(this._settings);else this._initPalette(this._settings);
+      }
+
+      var palette = this._settings.palette;
+      this.callEvent("onBeforeRender", []);
+      var padding = type === "classic" ? 0 : $active.colorPadding;
+      var single$$1 = _typeof(palette[0]) == "object";
+      var firstRow = single$$1 ? palette[0] : palette;
+      var deltaWidth = padding * 2 + padding * (firstRow.length - 1);
+      var deltaHeight = padding * 2 + padding * (single$$1 ? palette.length - 1 : 0);
+      var width = this.$width - deltaWidth,
+          height = this.$height - deltaHeight,
           widths = [];
-      var html = "<div class=\"webix_color_palette\"role=\"rowgroup\">";
-      var firstRow = _typeof(palette[0]) == "object" ? palette[0] : palette;
+      var html = "<div class=\"webix_color_palette ".concat("webix_palette_" + type, "\" role=\"rowgroup\">");
 
       for (var i = 0; i < firstRow.length; i++) {
         widths[i] = Math.floor(width / (firstRow.length - i));
@@ -24689,30 +25429,14 @@
           var cellHeight = Math.floor(height / (palette.length - r));
           height -= cellHeight;
           var row = palette[r];
-          html += renderRow(row, widths, cellHeight);
+          html += this._renderRow(row, widths, cellHeight);
         }
       } else {
-        html += renderRow(palette, widths, height);
+        html += this._renderRow(palette, widths, height);
       }
 
       html += "</div>";
       this._viewobj.innerHTML = html;
-
-      function renderRow(row, widths, height) {
-        var rowHtml = "<div class=\"webix_color_row\" role=\"row\">";
-
-        for (var cell = 0; cell < row.length; cell++) {
-          data.width = widths[cell];
-          data.height = height;
-          data.val = row[cell];
-          rowHtml += itemTpl(data);
-        }
-
-        rowHtml += "</div>";
-        return rowHtml;
-      }
-
-      this._selectBox = null;
       if (this._settings.value) this.$setValue(this._settings.value);else this._viewobj.lastChild.childNodes[0].childNodes[0].setAttribute("tabindex", "0");
       this.callEvent("onAfterRender", []);
     },
@@ -24723,6 +25447,318 @@
   var view$t = exports.protoUI(api$t, KeysNavigation, base$1.view, EventSystem);
 
   var api$u = {
+    name: "colorselect",
+    defaults: {
+      width: 260,
+      height: 250,
+      value: "#751FE0"
+    },
+    $init: function (config) {
+      this._hValue = this._sValue = this._vValue = 0;
+      this._cs1 = 10; //small circle
+
+      this._cs2 = 16; //big circle
+
+      this.attachEvent("onAfterRender", function () {
+        var _this = this;
+
+        //nodes and params
+        this._colorCircle = this._viewobj.querySelector(".webix_color_circle");
+        this._colorLineCircle = this._viewobj.querySelector(".webix_color_line_circle");
+        this._colorBlock = this._viewobj.querySelector(".webix_color_block");
+        this._colorLine = this._viewobj.querySelector(".webix_color_line");
+        this._colorOutText = this._viewobj.querySelector(".webix_color_out_text");
+        this._colorOutBlock = this._viewobj.querySelector(".webix_color_out_block");
+        this._offset = offset(this._colorBlock); //events
+
+        if (env.touch) {
+          this.attachEvent("onTouchStart", function (e, ctx) {
+            var css = e.target.className;
+            var parent = e.target.parentNode.className;
+            if (css == "webix_color_block" || parent == "webix_color_block") _this._handle_dnd(ctx || e);else if (css.indexOf("webix_color_line") == 0) _this._handle_dnd(ctx || e, true);
+          });
+        } else {
+          _event(this._colorBlock, "mousedown", function (e) {
+            return _this._handle_dnd(e);
+          });
+
+          _event(this._colorLine, "mousedown", function (e) {
+            return _this._handle_dnd(e, true);
+          });
+        }
+
+        _event(this.$view, "keydown", function (e) {
+          return _this._handle_move_keyboard(e);
+        });
+
+        _event(this._colorOutText, "change", function () {
+          return _this.setValue(_this._colorOutText.value);
+        });
+
+        if (config.button) _event(this._viewobj.querySelector(".webix_button"), "click", function () {
+          _this.callEvent("onColorSelect", [_this.getValue()]);
+        });
+      });
+    },
+    $skin: function () {
+      if ($name == "compact" || $name == "mini") this._inpHeight = 24;else this._inpHeight = 32;
+    },
+    $setSize: function (x, y) {
+      if (base$1.api.$setSize.call(this, x, y)) {
+        this.render();
+      }
+    },
+    getValue: function () {
+      return this._settings.value;
+    },
+    $prepareValue: function (value) {
+      value = value ? value.toString(16) : "";
+      if (value && value.charAt(0) != "#" && /^[0-9a-fA-F]+$/.test(value)) value = "#" + value;
+      return value;
+    },
+    value_setter: function (value) {
+      return this.$prepareValue(value);
+    },
+    setValue: function (value) {
+      value = this.$prepareValue(value);
+      var oldvalue = this._settings.value;
+
+      if (oldvalue != value) {
+        this._settings.value = value;
+        this.$setValue(value);
+        this.callEvent("onChange", [value, oldvalue]);
+      }
+    },
+    $setValue: function (value) {
+      if (this.isVisible(this._settings.id)) {
+        var rgb = color.toRgb(value);
+
+        if (value !== this._current_value) {
+          //set by API
+          var hsv = color.rgbToHsv.apply(color, _toConsumableArray(rgb));
+          this._hValue = hsv[0];
+          this._sValue = hsv[1];
+          this._vValue = hsv[2];
+        }
+
+        var left = this._hValue * this._offset.width / 359;
+        this._colorLineCircle.style.left = left - this._cs2 / 2 + "px";
+        var half = this._cs1 / 2;
+        var x = this._sValue * this._offset.width - half;
+        var y = Math.abs(this._offset.height * (this._vValue - 1)) - half;
+        this._colorCircle.style.left = Math.max(Math.min(x, this._offset.width - this._cs1), 0) + "px";
+        this._colorCircle.style.top = Math.max(Math.min(y, this._offset.height - this._cs1), 0) + "px";
+
+        this._update_circle_color();
+
+        this._colorCircle.setAttribute("aria-valuetext", value);
+
+        this._colorLineCircle.setAttribute("aria-valuetext", value);
+
+        this._setOutColors(rgb, value);
+
+        this._setBlockColors();
+      }
+    },
+    _setOutColors: function (rgb, hex) {
+      if (!rgb) rgb = color.hsvToRgb(this._hValue, this._sValue, this._vValue);
+      if (!hex) hex = "#" + color.rgbToHex(rgb);
+      this._colorOutBlock.style.backgroundColor = "rgb(".concat(rgb[0], ", ").concat(rgb[1], ", ").concat(rgb[2], ")");
+      this._colorOutText.value = hex.toUpperCase();
+      this._current_value = hex;
+    },
+    _setBlockColors: function () {
+      var rgb = color.hsvToRgb(this._hValue, 1, 1);
+      var rgbStr = "rgb(".concat(rgb[0], ", ").concat(rgb[1], ", ").concat(rgb[2], ")");
+      this._colorLineCircle.style.backgroundColor = rgbStr;
+      this._colorBlock.style.backgroundColor = rgbStr;
+    },
+    // dragging to set value
+    _move_block: function (e) {
+      if (e.target.className == "webix_color_circle" && !env.touch) return;
+      var pos$$1 = env.touch ? {
+        x: e.x,
+        y: e.y
+      } : pos(e);
+      var half = this._cs1 / 2;
+      var x = pos$$1.x - this._offset.x;
+      var y = pos$$1.y - this._offset.y;
+      x = Math.max(Math.min(x, this._offset.width - half), 0 + half);
+      y = Math.max(Math.min(y, this._offset.height - half), 0 + half);
+      this._colorCircle.style.left = x - half + "px";
+      this._colorCircle.style.top = y - half + "px";
+      var pxX = this._offset.width / 100;
+      var pxY = this._offset.height / 100;
+      var s = Math.ceil(x / pxX) / 100;
+      var v = Math.ceil(Math.abs(y / pxY - 100)) / 100;
+      this._sValue = s;
+      this._vValue = v;
+
+      this._update_circle_color();
+
+      this._setOutColors();
+    },
+    _update_circle_color: function () {
+      if (this._vValue > 0.7 && this._sValue < 0.3) this._colorCircle.style.borderColor = "#475466";else this._colorCircle.style.borderColor = "#fff";
+    },
+    _move_line: function (e, move) {
+      if (e.target.className == "webix_color_line_circle" && !move) return;
+      var left = (env.touch ? e.x : pos(e).x) - this._offset.x;
+      left = Math.max(Math.min(left, this._offset.width), 0);
+      var h = Math.round(left * 359 / this._offset.width);
+      this._hValue = Math.min(Math.max(h, 0), 359);
+      this._colorLineCircle.style.left = left - this._cs2 / 2 + "px";
+
+      this._setOutColors();
+
+      this._setBlockColors();
+    },
+    _handle_dnd: function (e, line) {
+      var _this2 = this;
+
+      this._offset = offset(this._colorBlock);
+
+      if (line) {
+        addCss(this._colorLine, "webix_color_area_active");
+
+        this._move_line(e);
+      } else {
+        addCss(this._colorBlock, "webix_color_area_active");
+
+        this._move_block(e);
+      }
+
+      if (env.touch) {
+        this._handle_drag_events = [this.attachEvent("onTouchMove", function (e, ctx) {
+          return _this2._handle_move_process(ctx || e, line);
+        }), this.attachEvent("onTouchEnd", function () {
+          return _this2._handle_move_stop(line);
+        })];
+      } else {
+        this._handle_drag_events = [event$1(document.body, "mousemove", function (e) {
+          return _this2._handle_move_process(e, line);
+        }), event$1(window, "mouseup", function () {
+          return _this2._handle_move_stop(line);
+        })];
+      }
+
+      addCss(document.body, "webix_noselect");
+    },
+    _handle_move_process: function (e, line) {
+      if (line) this._move_line(e, true);else this._move_block(e);
+    },
+    _handle_move_stop: function (line) {
+      //detach event handlers
+      if (this._handle_drag_events) {
+        if (env.touch) {
+          this.detachEvent(this._handle_drag_events[0]);
+          this.detachEvent(this._handle_drag_events[1]);
+        } else {
+          eventRemove(this._handle_drag_events[0]);
+          eventRemove(this._handle_drag_events[1]);
+        }
+
+        this._handle_drag_events = null;
+        this.setValue(this._current_value);
+
+        if (line) {
+          removeCss(this._colorLine, "webix_color_area_active");
+
+          this._colorLineCircle.focus();
+        } else {
+          removeCss(this._colorBlock, "webix_color_area_active");
+
+          this._colorCircle.focus();
+        }
+      }
+
+      removeCss(document.body, "webix_noselect");
+    },
+    _move_block_value: function (val, inc) {
+      return Math.min(Math.max(val + inc / 100, 0), 1);
+    },
+    _move_line_value: function (val, inc) {
+      return Math.min(Math.max(val + inc, 0), 359);
+    },
+    _handle_move_keyboard: function (e) {
+      var code = e.keyCode;
+
+      if (code > 32 && code < 41) {
+        var match = /webix_color_(\w*)circle/.exec(e.target.className);
+        if (!match) return;
+        preventEvent(e);
+
+        if (match[1].length) {
+          //line
+          if (code === 36) this._hValue = 0;else if (code === 35) this._hValue = 359;else {
+            var inc = code === 37 || code === 40 || code === 34 ? -1 : 1;
+            this._hValue = this._move_line_value(this._hValue, inc);
+          }
+
+          this._setBlockColors();
+        } else {
+          if (code === 36) {
+            this._sValue = 0;
+            this._vValue = 1;
+          } else if (code === 35) this._sValue = this._vValue = 1;else if (code === 39 || code === 37) {
+            var _inc = code === 39 ? 1 : -1;
+
+            this._sValue = this._move_block_value(this._sValue, _inc);
+          } else {
+            var _inc2 = code === 33 || code === 38 ? 1 : -1;
+
+            this._vValue = this._move_block_value(this._vValue, _inc2);
+          }
+        }
+
+        this._setOutColors(); //paint value, black colors may have a bigger step
+
+
+        if (this._settings.value == this._current_value) this.$setValue(this._current_value);else this.setValue(this._current_value);
+      }
+    },
+    moveSelection: function (mode) {
+      if (mode == "pgup" || mode == "pgdown") {
+        //line
+        var inc = mode === "pgup" ? -1 : 1;
+        this._hValue = this._move_line_value(this._hValue, inc);
+
+        this._setBlockColors();
+      } else if (mode != "top" && mode !== "bottom") {
+        var _inc3 = mode == "up" || mode == "right" ? 1 : -1;
+
+        if (mode == "down" || mode == "up") this._vValue = this._move_block_value(this._vValue, _inc3);else this._sValue = this._move_block_value(this._sValue, _inc3);
+      }
+
+      this._setOutColors();
+
+      this.setValue(this._current_value);
+    },
+    render: function () {
+      if (!this.isVisible(this._settings.id)) return;
+      this.callEvent("onBeforeRender", []);
+      var inpWidth = (this.$width - $active.dataPadding * 3) / 2; //24 paddings, 32 color line, 12 padding
+
+      var bHeight = this.$height - 24 - 32 - this._inpHeight - (this._settings.button ? this._inpHeight + 12 : 0);
+      var html = "<div class=\"webix_color_area\">";
+      html += "\n\t\t\t<div ".concat(
+      /*@attr*/
+      "webix_disable_drag", "=\"true\" class=\"webix_color_block\" style=\"height:", bHeight, "px;\">\n\t\t\t\t<div class=\"webix_color_circle\" tabindex=\"0\" role=\"slider\"></div>\n\t\t\t</div>\n\t\t\t<div ",
+      /*@attr*/
+      "webix_disable_drag", "=\"true\" class=\"webix_color_line\">\n\t\t\t\t<div class=\"webix_color_line_circle\" tabindex=\"0\" role=\"slider\"></div>\n\t\t\t</div>\n\t\t\t<div class=\"webix_color_out\">\n\t\t\t\t<div style=\"width:").concat(inpWidth, "px\" class=\"webix_color_out_block\"></div>\n\t\t\t\t<input type=\"text\" style=\"width:").concat(inpWidth, "px\" class=\"webix_color_out_text\"></input>\n\t\t\t</div>\n\t\t");
+      if (this._settings.button) html += "<div class='webix_secondary'><button class=\"webix_button webix_secondary\">".concat(i18n.combo.select, "</button></div>");
+      html += "</div>";
+      this._viewobj.innerHTML = html;
+      this.callEvent("onAfterRender", []);
+      this.$setValue(this._settings.value, true);
+    },
+    refresh: function () {
+      this.render();
+    }
+  };
+  var view$u = exports.protoUI(api$u, base$1.view, EventSystem);
+
+  var api$v = {
     name: "button",
     touchable: true,
     $skin: function () {
@@ -24735,13 +25771,15 @@
         return "<div class='webix_el_box' style='width:" + obj.awidth + "px; height:" + obj.aheight + "px'>" + text + "</div>";
       },
       label: "",
+      value: "",
       borderless: true
     },
     $renderInput: function (obj) {
-      return "<button type='button' " + (obj.popup ? "aria-haspopup='true'" : "") + " class='webix_button'>" + (obj.label || this._pattern(obj.value)) + "</button>";
+      return "<button type='button' " + (obj.popup ? "aria-haspopup='true'" : "") + " class='webix_button'>" + (obj.label || obj.value) + "</button>";
     },
     $init: function (config) {
       this._viewobj.className += " webix_control webix_el_" + (this.$cssName || this.name);
+      this._destroy_with_me = [];
 
       this._set_default_css(config);
 
@@ -24795,7 +25833,7 @@
     _set_inner_size: false,
     _types: {
       image: "<button type='button' class='webix_button webix_img_btn' style='line-height:#cheight#px;'><img class='webix_image' style='max-width:#cheight#px; max-height:#cheight#px;' src = '#image#'>#label#</button>",
-      imageTop: "<button type='button' class='webix_button webix_img_btn_top'><div class='webix_image' style='width:100%;height:100%;background-image:url(#image#);'></div><div class='webix_img_btn_text'>#label#</div></button>",
+      imageTop: "<button type='button' class='webix_button webix_img_btn_top'><img class='webix_image' style='max-width:#cheight#px; max-height:#cheight#px;' src = '#image#'><div class='webix_img_btn_text'>#label#</div></button>",
       icon: "<button type='button' class='webix_button webix_img_btn' style='line-height:#cheight#px;'><span class='webix_icon_btn #icon#' style='max-width:#cheight#px;'></span>#label#</button>",
       iconTop: "<button type='button' class='webix_button webix_img_btn_top' style='width:100%;text-align:center;'><span class='webix_icon #icon#'></span><div class='webix_img_btn_text'>#label#</div></button>"
     },
@@ -24878,7 +25916,7 @@
 
       if (this.$compareValue(oldvalue, value)) {
         if (this._rendered_input && value != this.$getValue()) this.$setValue(value);
-        return false;
+        return;
       }
 
       this._settings.value = value;
@@ -24891,10 +25929,10 @@
       return oldvalue == value;
     },
     $prepareValue: function (value) {
-      return this._pattern(value, false);
-    },
-    _pattern: function (value) {
       return value === 0 ? "0" : (value || "").toString();
+    },
+    value_setter: function (value) {
+      return this.$prepareValue(value);
     },
     //visual part of setValue
     $setValue: function (value) {
@@ -24936,11 +25974,13 @@
       return null;
     },
     _get_tooltip_data: function (t, e) {
-      var node = e.target || e.srcElement;
+      var node = e.target;
 
       var box = this._getBox();
 
-      if (box && box.contains(node)) return this._settings;
+      var isTopLabel = this._settings.labelPosition == "top" && this._dataobj.firstChild.contains(node);
+
+      if (isTopLabel || box && box.contains(node)) return this._settings;
       return null;
     },
     _sqrt_2: Math.sqrt(2),
@@ -24986,7 +26026,6 @@
           switch (this._settings.align) {
             case "right":
               handle.style.cssFloat = "right";
-              handle.style.textAlign = "right";
               break;
 
             case "center":
@@ -25054,7 +26093,7 @@
         this.getInputNode().focus();
       },
       webix_inp_checkbox_border: function (e) {
-        if (!this._settings.disabled && (e.target || e.srcElement).tagName != "DIV" && !this._settings.readonly) this.toggle();
+        if (!this._settings.disabled && e.target.tagName != "DIV" && !this._settings.readonly) this.toggle();
       },
       webix_inp_checkbox_label: function () {
         if (!this._settings.readonly) this.toggle();
@@ -25084,6 +26123,7 @@
         "button_id");
         var opt = this.getOption(id);
         if (opt && !opt.disabled && this.callEvent("onBeforeTabClose", [id, e])) this.removeOption(id);
+        return false;
       }
     },
     //method do not used by button, but  used by other child-views
@@ -25114,13 +26154,13 @@
       return placeholder ? "<span class='webix_placeholder'>" + placeholder + "</span>" : "";
     }
   };
-  var view$u = exports.protoUI(api$u, base$1.view, AutoTooltip, AtomRender, Settings, EventSystem);
+  var view$v = exports.protoUI(api$v, base$1.view, AutoTooltip, AtomRender, Settings, EventSystem);
   var button$1 = {
-    api: api$u,
-    view: view$u
+    api: api$v,
+    view: view$v
   };
 
-  var api$v = {
+  var api$w = {
     name: "label",
     defaults: {
       template: "<div class='webix_el_box' style='width:#awidth#px;height:#aheight#px;line-height:#cheight#px'>#label#</div>"
@@ -25146,6 +26186,9 @@
     $setValue: function (value) {
       this._dataobj.firstChild.innerHTML = value;
     },
+    $render: function (config) {
+      if (config.align === "right") this._dataobj.firstChild.style.textAlign = "right";
+    },
     _set_inner_size: false,
     _set_default_css: function () {},
     _calc_size: function (config) {
@@ -25154,13 +26197,7 @@
       if (config.autowidth) config.width = getTextSize(config.label, css).width;
     }
   };
-  var view$v = exports.protoUI(api$v, button$1.view);
-
-  var controls = {};
-
-  for (var i in UIManager._controls) {
-    controls[UIManager._controls[i]] = i;
-  }
+  var view$w = exports.protoUI(api$w, button$1.view);
 
   var nav_controls = {
     9: "tab",
@@ -25181,9 +26218,8 @@
           if (code > 105 && code < 112) //numpad operators
             code -= 64;
 
-          if (controls[code] && code !== 8 && code !== 46) {
+          if (nav_controls[code] && code !== 8 && code !== 46) {
             //del && bsp
-            if (!nav_controls[code]) preventEvent(e);
             return;
           }
 
@@ -25195,6 +26231,10 @@
 
         this.getText = function () {
           return this.getInputNode().value;
+        };
+
+        this.$prepareValue = function (value) {
+          return this._pattern(value, false);
         };
 
         this._pattern = function (value, mode) {
@@ -25216,6 +26256,12 @@
             };
           }
         }
+      } // initialize pattern before value_setter
+
+
+      if (pattern) {
+        this._settings.pattern = this.pattern_setter(pattern);
+        delete config.pattern;
       }
     },
     pattern_setter: function (value) {
@@ -25292,7 +26338,8 @@
         }
       } else {
         chr = String.fromCharCode(code);
-        if (!e.shiftKey) chr = chr.toLowerCase();
+        var isCapsLock = e.getModifierState("CapsLock");
+        if (!e.shiftKey && !isCapsLock || e.shiftKey && isCapsLock) chr = chr.toLowerCase();
       }
 
       value = value.substr(0, pos$$1.start) + chr + value.substr(pos$$1.end);
@@ -25379,7 +26426,7 @@
     }
   };
 
-  var api$w = {
+  var api$x = {
     name: "text",
     $allowsClear: true,
     _init_onchange: function () {
@@ -25409,13 +26456,11 @@
     },
     $init: function (config) {
       if (config.labelPosition == "top") if (isUndefined(config.height) && this.defaults.height) // textarea
-        config.height = this.defaults.height + (config.label ? this._labelTopHeight : 0); //suggest reference for destructor
-
-      this._destroy_with_me = [];
-      this.attachEvent("onAfterRender", this._init_onchange);
-      this.attachEvent("onBlur", function () {
-        if (this._onBlur) this._onBlur();
+        config.height = this.defaults.height + (config.label ? this._labelTopHeight : 0);
+      if (this._onBlur) this.attachEvent("onBlur", function () {
+        if (this._rendered_input) this._onBlur();
       });
+      this.attachEvent("onAfterRender", this._init_onchange);
     },
     $renderIcon: function () {
       var config = this._settings;
@@ -25536,7 +26581,7 @@
       }
     },
     _get_input_width: function (config) {
-      var width = (this._input_width || 0) - (config.label ? this._settings.labelWidth : 0) - this._inputSpacing - (config.iconWidth || 0); //prevent js error in IE
+      var width = (this._input_width || 0) - (config.label ? config.labelWidth : 0) - this._inputSpacing - (config.iconWidth || 0); //prevent js error in IE
 
       return width < 0 ? 0 : width;
     },
@@ -25554,7 +26599,7 @@
       return common.$renderInput(obj, html, id);
     },
     _baseInputHTML: function (tag) {
-      var html = "<" + tag + (this._settings.placeholder ? " placeholder='" + this._settings.placeholder + "' " : " ");
+      var html = "<" + tag + (this._settings.placeholder ? " placeholder='" + template.escape(this._settings.placeholder) + "' " : " ");
       if (this._settings.readonly) html += "readonly='true' aria-readonly=''";
       if (this._settings.required) html += "aria-required='true'";
       if (this._settings.invalid) html += "aria-invalid='true'";
@@ -25568,13 +26613,10 @@
       var label = "";
 
       if (config.label) {
-        var labelAlign = config.labelAlign || "left";
         var top = this._settings.labelPosition == "top";
-        var labelTop = top ? "display:block;" : "width: " + this._settings.labelWidth + "px;";
-
-        var labelHeight = this._getLabelHeight(top);
-
-        label = "<label style='" + labelTop + "text-align: " + labelAlign + ";line-height:" + labelHeight + "px;' onclick='' for='" + id + "' class='webix_inp_" + (top ? "top_" : "") + "label " + (config.required ? "webix_required" : "") + "'>" + (config.label || "") + "</label>";
+        var style = "text-align:".concat(config.labelAlign || "left", "; line-height:").concat(this._getLabelHeight(top), "px; ");
+        if (top) style += "display:block;";else style += config.labelWidth ? "width:".concat(config.labelWidth, "px;") : "display:none;";
+        label = "<label style='" + style + "' onclick='' for='" + id + "' class='webix_inp_" + (top ? "top_" : "") + "label " + (config.required ? "webix_required" : "") + "'>" + (config.label || "") + "</label>";
       }
 
       return label;
@@ -25623,11 +26665,17 @@
       label: "",
       labelWidth: 80
     },
+    labelWidth_setter: function (value) {
+      return value ? Math.max(value, $active.dataPadding) : 0;
+    },
     type_setter: function (value) {
       return value;
     },
     _set_inner_size: false,
     _set_default_css: function () {},
+    _pattern: function (value) {
+      return value;
+    },
     $setValue: function (value) {
       this.getInputNode().value = this._pattern(value);
     },
@@ -25682,10 +26730,10 @@
       return false;
     }
   };
-  var view$w = exports.protoUI(api$w, TextPattern, button$1.view);
+  var view$x = exports.protoUI(api$x, TextPattern, button$1.view);
   var text = {
-    api: api$w,
-    view: view$w
+    api: api$x,
+    view: view$x
   };
 
   var DataCollection = exports.proto({
@@ -25709,7 +26757,7 @@
   }, DataMove, CollectionBind, BindSource, ValidateCollection, DataLoader, MapCollection, EventSystem, BaseBind, Destruction, Settings);
   define("DataCollection", DataCollection);
 
-  var api$x = {
+  var api$y = {
     name: "select",
     defaults: {
       template: function (obj, common) {
@@ -25749,9 +26797,9 @@
       return this._dataobj.getElementsByTagName("select")[0];
     }
   };
-  var view$x = exports.protoUI(api$x, text.view);
+  var view$y = exports.protoUI(api$y, text.view);
 
-  var api$y = {
+  var api$z = {
     name: "checkbox",
     defaults: {
       checkValue: 1,
@@ -25793,7 +26841,7 @@
       var input = this.getInputNode();
       if (input) input.blur();
     },
-    _pattern: function (value) {
+    $prepareValue: function (value) {
       return value;
     },
     _init_onchange: function () {},
@@ -25829,13 +26877,13 @@
       this.defaults.customCheckbox = !!$active.customCheckbox;
     }
   };
-  var view$y = exports.protoUI(api$y, text.view);
+  var view$z = exports.protoUI(api$z, text.view);
   var checkbox = {
-    api: api$y,
-    view: view$y
+    api: api$z,
+    view: view$z
   };
 
-  var api$z = {
+  var api$A = {
     name: "radio",
     defaults: {
       template: function (config, common) {
@@ -25917,28 +26965,27 @@
 
       var active = this._getFirstActive();
 
-      var id, focusable;
+      var id, option, focusable, parentNode, button;
 
       for (var i = 0; i < inp.length; i++) {
         id = inp[i].parentNode.getAttribute(
         /*@attr*/
         "radio_id");
-        var option = this.getOption(id);
+        option = this.getOption(id);
         inp[i].checked = id == value;
-        focusable = inp[i].checked || !value && option.id === active;
-        inp[i].setAttribute("tabindex", !option.disabled && focusable ? "0" : "-1");
-        var parentNode = inp[i] ? inp[i].parentNode : null;
+        focusable = option && !option.disabled && (inp[i].checked || !value && option.id == active);
+        inp[i].setAttribute("tabindex", focusable ? "0" : "-1");
+        parentNode = inp[i] ? inp[i].parentNode : null;
 
         if (parentNode) {
           parentNode.className = parentNode.className.replace(/(webix_radio_)\d/, "$1" + (inp[i].checked ? 1 : 0));
 
           if (this._settings.customRadio) {
-            var _button = parentNode.getElementsByTagName("BUTTON");
+            button = parentNode.getElementsByTagName("BUTTON");
 
-            if (_button[0]) {
-              _button[0].setAttribute("aria-checked", inp[i].checked ? "true" : "false");
-
-              _button[0].setAttribute("tabindex", !option.disabled && focusable ? "0" : "-1");
+            if (button[0]) {
+              button[0].setAttribute("aria-checked", inp[i].checked ? "true" : "false");
+              button[0].setAttribute("tabindex", focusable ? "0" : "-1");
             }
           }
         }
@@ -25965,11 +27012,21 @@
       if ($active.optionHeight) this.defaults.optionHeight = $active.optionHeight;
     }
   };
-  var view$z = exports.protoUI(api$z, text.view, HTMLOptions);
+  var view$A = exports.protoUI(api$A, text.view, HTMLOptions);
 
-  var api$A = {
+  var api$B = {
     name: "datepicker",
-    $init: function () {
+    _editable: true,
+    $init: function (config) {
+      // value_setter handling
+      if (config.multiselect) {
+        this._settings.multiselect = config.multiselect;
+      }
+
+      if (config.type) {
+        this._settings.type = config.type;
+      }
+
       this.$ready.push(this._init_popup);
     },
     defaults: {
@@ -26029,26 +27086,18 @@
       this._init_once = function () {};
     },
     $render: function (obj) {
-      if (isUndefined(obj.value)) return;
-      obj.value = this.$prepareValue(obj.value);
       this.$setValue(obj.value);
     },
     $prepareValue: function (value) {
       if (this._settings.multiselect) {
-        if (typeof value === "string") value = value.split(this._settings.separator);else if (value instanceof Date) {
-          value = [value];
-        } else if (!value) {
-          value = [];
-        }
+        if (typeof value === "string") value = value.split(this._settings.separator);else if (value instanceof Date) value = [value];else if (!value) value = [];
 
         for (var i = 0; i < value.length; i++) {
           value[i] = this._prepareSingleValue(value[i]);
         }
 
         return value;
-      } else {
-        return this._prepareSingleValue(value);
-      }
+      } else return this._prepareSingleValue(value);
     },
     _prepareSingleValue: function (value) {
       var type = this._settings.type;
@@ -26058,11 +27107,7 @@
 
       if (typeof value == "string" && value) {
         var formatDate = null;
-
-        if ((type == "month" || type == "year") && this._formatDate) {
-          formatDate = this._formatDate;
-        } else formatDate = timeMode ? i18n.parseTimeFormatDate : i18n.parseFormatDate;
-
+        if ((type == "month" || type == "year") && this._formatDate) formatDate = this._formatDate;else formatDate = timeMode ? i18n.parseTimeFormatDate : i18n.parseFormatDate;
         value = formatDate(value);
       }
 
@@ -26085,26 +27130,24 @@
       return value;
     },
     _get_visible_text: function (value) {
-      if (this._settings.multiselect) {
-        return [].concat(value).map(function (a) {
-          return this._get_visible_text_single(a);
-        }.bind(this)).join(this.config.separator);
-      } else return this._get_visible_text_single(value);
+      var _this = this;
+
+      if (this._settings.multiselect) return [].concat(value).map(function (a) {
+        return _this._get_visible_text_single(a);
+      }).join(this.config.separator);else return this._get_visible_text_single(value);
     },
     _get_visible_text_single: function (value) {
-      var timeMode = this._settings.type == "time";
-      var timepicker = this.config.timepicker;
-      var formatStr = this._formatStr || (timeMode ? i18n.timeFormatStr : timepicker ? i18n.fullDateFormatStr : i18n.dateFormatStr);
+      var formatStr = this._formatStr;
+
+      if (!formatStr) {
+        if (this._settings.type == "time") formatStr = i18n.timeFormatStr;else if (this.config.timepicker) formatStr = i18n.fullDateFormatStr;else formatStr = i18n.dateFormatStr;
+      }
+
       return formatStr(value);
     },
     _set_visible_text: function () {
       var node = this.getInputNode();
-
-      if (node.value == undefined) {
-        node.innerHTML = this._settings.text || this._get_div_placeholder();
-      } else {
-        node.value = this._settings.text || "";
-      }
+      if (isUndefined(node.value)) node.innerHTML = this._settings.text || this._get_div_placeholder();else node.value = this._settings.text || "";
     },
     $compareValue: function (oldvalue, value) {
       if (!oldvalue && !value) return true;
@@ -26129,12 +27172,14 @@
       return this._settings.editable ? this._dataobj.getElementsByTagName("input")[0] : this._dataobj.getElementsByTagName("DIV")[1];
     },
     getValue: function () {
+      var _this2 = this;
+
       if (this._settings.multiselect) {
         var value = this._settings.value;
         if (!value) return [];
         var result = [].concat(value).map(function (a) {
-          return this._get_value_single(a);
-        }.bind(this));
+          return _this2._get_value_single(a);
+        });
         if (this._settings.stringResult) return result.join(this._settings.separator);
         return result;
       }
@@ -26142,15 +27187,17 @@
       return this._get_value_single(this._settings.value);
     },
     _get_value_single: function (value) {
-      var type = this._settings.type; //time mode
-
-      var timeMode = type == "time"; //date and time mode
-
-      var timepicker = this.config.timepicker; //input was not rendered, we need to parse value from setValue method
+      var type = this._settings.type;
+      var timeMode = type == "time"; //input was not rendered, we need to parse value from setValue method
 
       if (!this._rendered_input) value = this.$prepareValue(value) || null; //rendere and in edit mode
       else if (this._settings.editable) {
-          var formatDate = this._formatDate || (timeMode ? i18n.timeFormatDate : timepicker ? i18n.fullDateFormatDate : i18n.dateFormatDate);
+          var formatDate = this._formatDate;
+
+          if (!formatDate) {
+            if (timeMode) formatDate = i18n.timeFormatDate;else if (this.config.timepicker) formatDate = i18n.fullDateFormatDate;else formatDate = i18n.dateFormatDate;
+          }
+
           value = formatDate(this.getInputNode().value);
         } //return string from getValue
 
@@ -26172,16 +27219,18 @@
     },
     getText: function () {
       var node = this.getInputNode();
-      return node ? typeof node.value == "undefined" ? this.getValue() ? node.innerHTML : "" : node.value : "";
+      var text$$1 = "";
+      if (node) text$$1 = isUndefined(node.value) ? node.innerHTML : node.value;
+      return text$$1;
     }
   };
-  var view$A = exports.protoUI(api$A, text.view);
+  var view$B = exports.protoUI(api$B, text.view);
   var datepicker = {
-    api: api$A,
-    view: view$A
+    api: api$B,
+    view: view$B
   };
 
-  var api$B = {
+  var api$C = {
     name: "colorpicker",
     $init: function () {
       this.$ready.push(this._init_popup);
@@ -26192,16 +27241,10 @@
     _init_popup: function () {
       var obj = this._settings;
       if (obj.suggest) obj.popup = obj.suggest;else if (!obj.popup) obj.popup = obj.suggest = this.suggest_setter({
-        type: "colorboard",
-        height: 200
+        type: "colorboard"
       });
 
       this._init_once = function () {};
-    },
-    $render: function (obj) {
-      if (isUndefined(obj.value)) return;
-      obj.value = this.$prepareValue(obj.value);
-      this.$setValue(obj.value);
     },
     getValue: function () {
       if (this._rendered_input && this._settings.editable) return this.getInputNode().value;else return this._settings.value;
@@ -26231,9 +27274,9 @@
       return "<div class=\"webix_input_icon\" style=\"background-color:" + config.value + ";\"> </div>";
     }
   };
-  var view$B = exports.protoUI(api$B, datepicker.view);
+  var view$C = exports.protoUI(api$C, datepicker.view);
 
-  var api$C = {
+  var api$D = {
     name: "richselect",
     defaults: {
       template: function (obj, common) {
@@ -26243,7 +27286,8 @@
       icon: "wxi-menu-down"
     },
     _onBlur: function () {
-      if (this._settings.text == this.getText() || isUndefined(this._settings.text) && !this.getText()) return;
+      var text$$1 = this.getText();
+      if (this._settings.text == text$$1 || isUndefined(this._settings.text) && !text$$1) return;
       var suggest = this.getPopup(),
           nodeValue = this.getInputNode().value,
           value = suggest.getSuggestion(nodeValue),
@@ -26266,20 +27310,17 @@
       assert(suggest, "Input doesn't have a list");
       return suggest.getList();
     },
-    _pattern: function (value) {
-      return value;
-    },
     _reset_value: function () {
-      var value = this._settings.value; //this._dataobj.firstChild - check that input is already rendered, as in IE11 it can be destroy during parent repainting
+      var value = this._settings.value;
+      var text$$1 = this._settings.text; //this.getInputNode - check that input is already rendered, as in IE11 it can be destroy during parent repainting
 
-      if (!isUndefined(value) && !this.getPopup().isVisible() && !this._settings.text && this._dataobj.firstChild) this.$setValue(value);
+      if (!isUndefined(value) && !this.getPopup().isVisible() && !text$$1 && this.getInputNode()) this.$setValue(value);
     },
     $skin: function () {
       text.api.$skin.call(this);
       this.defaults.inputPadding = $active.inputPadding;
     },
     $render: function (obj) {
-      if (isUndefined(obj.value)) return;
       this.$setValue(obj.value);
     },
     getInputNode: function () {
@@ -26300,26 +27341,27 @@
 
       return node.value;
     },
+    $prepareValue: function (value) {
+      if (value && value.id) return value; //don't convert new items
+
+      return text.api.$prepareValue.call(this, value);
+    },
     $setValue: function (value) {
-      if (!this._rendered_input) return;
       var text$$1 = value;
       var popup = this.getPopup();
-      if (popup) text$$1 = this.getPopup().getItemText(value);
+      if (popup) text$$1 = popup.getItemText(value);
 
-      if (!text$$1 && value && value.id) {
+      if (value && value.id) {
         //add new value
-        var _popup = this.getPopup();
+        var list = popup.getList();
+        var exists = list.exists(value.id); // add new item only when item with such id doesn't exists yet
 
-        var list = _popup.getList(); // add new item only when item with such id doesn't exists yet
-
-
-        var exists = list.exists(value.id);
         if (!exists) list.add(value);
-        text$$1 = _popup.getItemText(value.id); // in case of dynamic list, we can't add extra items
+        text$$1 = popup.getItemText(value.id); // in case of dynamic list, we can't add extra items
         // to not interfere with dynamic loading
 
         if (list._settings.dynamic && !exists) list.remove(value.id);
-        this._settings.value = value.id;
+        this._settings.value = this.$prepareValue(value.id);
       }
 
       var node = this.getInputNode();
@@ -26334,26 +27376,20 @@
       preventEvent(ev);
     }
   };
-  var view$C = exports.protoUI(api$C, text.view);
+  var view$D = exports.protoUI(api$D, text.view);
   var richselect = {
-    api: api$C,
-    view: view$C
+    api: api$D,
+    view: view$D
   };
 
-  var api$D = {
+  var api$E = {
     name: "combo",
     getInputNode: function () {
       return this._dataobj.getElementsByTagName("input")[0];
     },
-    $render: function (obj) {
-      if (isUndefined(obj.value)) return;
-      this.$setValue(obj.value);
-    },
     _revertValue: function () {
-      if (!this._settings.editable) {
-        var value = this.getValue();
-        this.$setValue(isUndefined(value) ? "" : value);
-      }
+      var value = this.getValue();
+      this.$setValue(isUndefined(value) ? "" : value);
     },
     _applyChanges: function () {
       var input = this.getInputNode(),
@@ -26366,11 +27402,6 @@
       }
 
       if (value != this._settings.value) this.setValue(value, true);else this.$setValue(value);
-    },
-    $compareValue: function (value) {
-      var result = richselect.api.$compareValue.apply(this, arguments);
-      if (result && value != this.getText()) this._revertValue();
-      return result;
     },
     defaults: {
       template: function (config, common) {
@@ -26387,9 +27418,9 @@
       }
     }
   };
-  var view$D = exports.protoUI(api$D, richselect.view);
+  var view$E = exports.protoUI(api$E, richselect.view);
 
-  var api$E = {
+  var api$F = {
     name: "counter",
     defaults: {
       template: function (config, common) {
@@ -26426,10 +27457,10 @@
     },
     $prepareValue: function (value) {
       value = parseFloat(value);
-      return isNaN(value) ? 0 : value;
-    },
-    value_setter: function (value) {
-      return this.$prepareValue(value);
+      var min = this._settings.min;
+      var max = this._settings.max;
+      if (isNaN(value)) value = isFinite(min) ? min : 0;
+      return Math.min(Math.max(value, min), max);
     },
     getInputNode: function () {
       return this._dataobj.getElementsByTagName("input")[0];
@@ -26446,15 +27477,14 @@
       this.shift(step);
     },
     shift: function (step) {
-      var min = this._settings.min;
-      var max = this._settings.max;
-      var new_value = this.getValue() + step;
-      if (new_value >= min && new_value <= max) this.setValue(new_value);
+      //round values to fix math precision issue in JS
+      var new_value = Math.round((this.getValue() + step) * 100000) / 100000;
+      this.setValue(new_value);
     }
   };
-  var view$E = exports.protoUI(api$E, text.view);
+  var view$F = exports.protoUI(api$F, text.view);
 
-  var api$F = {
+  var api$G = {
     name: "icon",
     $skin: function () {
       button$1.api.$skin.call(this);
@@ -26473,9 +27503,9 @@
     _set_default_css: function () {},
     $setValue: function () {}
   };
-  var view$F = exports.protoUI(api$F, button$1.view);
+  var view$G = exports.protoUI(api$G, button$1.view);
 
-  var api$G = {
+  var api$H = {
     name: "search",
     on_click: {
       "webix_input_icon": function (e) {
@@ -26492,9 +27522,9 @@
       icon: "wxi-search"
     }
   };
-  var view$G = exports.protoUI(api$G, text.view);
+  var view$H = exports.protoUI(api$H, text.view);
 
-  var api$H = {
+  var api$I = {
     name: "segmented",
     $allowsClear: false,
     $init: function () {
@@ -26522,7 +27552,8 @@
 
         var width = common._get_input_width(obj);
 
-        var optionWidth = obj.optionWidth || Math.floor(width / options.length);
+        var borders = $name == "contrast" ? 0 : options.length - 1;
+        var optionWidth = obj.optionWidth || Math.floor((width - borders) / options.length);
         var html = "<div style='width:" + width + "px' class='webix_all_segments' role='tablist' aria-label='" + template.escape(obj.label) + "'>";
         var tooltip, isDisabled;
         if (!obj.value) obj.value = common._getFirstActive(true);
@@ -26548,23 +27579,23 @@
       this._blur();
     },
     $setValue: function (value) {
+      //refresh tabbar if the option is in the popup list
+      var popup = this.config.tabbarPopup;
+      if (popup && $$(popup) && $$(popup).getBody().exists(value)) return this.refresh();
+
       var inputs = this._getInputNode();
 
-      var id;
+      var id, option;
 
       for (var i = 0; i < inputs.length; i++) {
         id = inputs[i].getAttribute(
         /*@attr*/
         "button_id");
-        var option = this.getOption(id);
+        option = this.getOption(id);
         inputs[i].setAttribute("aria-selected", value == id ? "true" : "false");
-        inputs[i].setAttribute("tabindex", !option.disabled && value == id ? "0" : "-1");
+        inputs[i].setAttribute("tabindex", option && !option.disabled && value == id ? "0" : "-1");
         if (value == id) addCss(inputs[i], "webix_selected");else removeCss(inputs[i], "webix_selected");
-      } //refresh tabbar if the option is in the popup list
-
-
-      var popup = this.config.tabbarPopup;
-      if (popup && $$(popup) && $$(popup).getBody().exists(value)) this.refresh();
+      }
     },
     $getValue: function () {
       return this._settings.value || "";
@@ -26577,13 +27608,13 @@
     },
     _set_inner_size: false
   };
-  var view$H = exports.protoUI(api$H, text.view, HTMLOptions);
+  var view$I = exports.protoUI(api$I, text.view, HTMLOptions);
   var segmented = {
-    api: api$H,
-    view: view$H
+    api: api$I,
+    view: view$I
   };
 
-  var api$I = {
+  var api$J = {
     name: "textarea",
     defaults: {
       template: function (obj, common) {
@@ -26608,9 +27639,9 @@
       return this._dataobj.getElementsByTagName("textarea")[0];
     }
   };
-  var view$I = exports.protoUI(api$I, text.view);
+  var view$J = exports.protoUI(api$J, text.view);
 
-  var api$J = {
+  var api$K = {
     name: "toggle",
     $allowsClear: true,
     $init: function () {
@@ -26626,15 +27657,18 @@
       var obj = this._settings;
       var isPressed = value && value != "0";
       var text = (isPressed ? obj.onLabel : obj.offLabel) || obj.label;
-      var first = input.firstChild;
+      var children = input.children; //icon or image button
+
+      if (this._types[obj.type]) {
+        var icon = children[0];
+        if (icon.nodeName == "SPAN" && obj.onIcon && obj.offIcon && obj.onIcon != obj.offIcon) icon.className = icon.className.replace(isPressed ? obj.offIcon : obj.onIcon, isPressed ? obj.onIcon : obj.offIcon);
+        if (obj.type == "imageTop" || obj.type == "iconTop") children[1].innerHTML = text;else {
+          input.innerHTML = text;
+          input.insertBefore(icon, input.firstChild);
+        }
+      } else input.innerHTML = text;
+
       input.setAttribute("aria-pressed", isPressed ? "true" : "false");
-      input.innerHTML = text; //icon or image button
-
-      if (first && !!this._types[obj.type]) {
-        if (first.nodeName === "SPAN" && obj.onIcon && obj.offIcon && obj.onIcon !== obj.offIcon) first.className = first.className.replace(isPressed ? obj.offIcon : obj.onIcon, isPressed ? obj.onIcon : obj.offIcon);
-        input.insertBefore(first, input.firstChild);
-      }
-
       var changeCss = isPressed ? addCss : removeCss;
       changeCss(input.parentNode, "webix_pressed");
     },
@@ -26659,9 +27693,9 @@
     },
     _set_inner_size: false
   };
-  var view$J = exports.protoUI(api$J, button$1.view);
+  var view$K = exports.protoUI(api$K, button$1.view);
 
-  var api$K = {
+  var api$L = {
     name: "multitext",
     $cssName: "text",
     defaults: {
@@ -26764,8 +27798,9 @@
     on_click: {
       "webix_input_icon": function () {
         if (this.config.mode == "extra") {
+          var parent = this.getParentView();
           this.removeSection(this.config.id);
-          var childs = this.getParentView().getChildViews();
+          var childs = parent.getChildViews();
           childs[childs.length - 1].focus();
 
           this._subOnChange();
@@ -26782,7 +27817,7 @@
       this.$setValue(obj.value);
     }
   };
-  var view$K = exports.protoUI(api$K, text.view);
+  var view$L = exports.protoUI(api$L, text.view);
 
   exports.protoUI({
     name: "multiselect",
@@ -26798,7 +27833,7 @@
     }
   }, template$1.view);
 
-  var api$L = {
+  var api$M = {
     name: "slider",
     $touchCapture: true,
     defaults: {
@@ -26899,9 +27934,6 @@
         this._set_inner_size();
       }
     },
-    value_setter: function (value) {
-      return this.$prepareValue(value);
-    },
     $setValue: function () {
       this.refresh();
     },
@@ -26938,7 +27970,7 @@
 
       if (code > 32 && code < 41) {
         preventEvent(e);
-        var trg = e.target || e.srcElement;
+        var trg = e.target;
         var match = /webix_slider_handle_(\d)/.exec(trg.className);
         this._activeIndex = match ? parseInt(match[1], 10) : -1;
         if (match) value = c.value[this._activeIndex];
@@ -26972,7 +28004,7 @@
     },
     _on_mouse_down_start: function (e) {
       if (this._handle_drag_events) return;
-      var trg = e.target || e.srcElement;
+      var trg = e.target;
 
       if (this._mouse_down_process) {
         this._mouse_down_process(e);
@@ -27051,7 +28083,7 @@
     _init_onchange: function () {} //need not ui.text logic
 
   };
-  var view$L = exports.protoUI(api$L, text.view);
+  var view$M = exports.protoUI(api$M, text.view);
 
   exports.protoUI({
     name: "rangeslider",
@@ -27060,7 +28092,7 @@
     }
   }, template$1.view);
 
-  var api$M = {
+  var api$N = {
     name: "switch",
     defaults: {
       template: function (config, common) {
@@ -27121,9 +28153,9 @@
       }
     }
   };
-  var view$M = exports.protoUI(api$M, checkbox.view);
+  var view$N = exports.protoUI(api$N, checkbox.view);
 
-  var api$N = {
+  var api$O = {
     name: "tabbar",
     $init: function () {
       this.attachEvent("onKeyPress", this._onKeyPress);
@@ -27380,9 +28412,9 @@
       return value;
     }
   };
-  var view$N = exports.protoUI(api$N, segmented.view);
+  var view$O = exports.protoUI(api$O, segmented.view);
 
-  var api$O = {
+  var api$P = {
     name: "richtext",
     defaults: {
       label: "",
@@ -27392,6 +28424,11 @@
     $init: function () {
       this._viewobj.className += " webix_richtext";
       this.$ready.unshift(this._setLayout);
+    },
+    $skin: function () {
+      layout.api.$skin.call(this);
+      this.defaults.paddingX = $active.inputSpacing / 2;
+      this.defaults.paddingY = $active.inputPadding;
     },
     getInputNode: function () {
       return this.$view.querySelector(".webix_richtext_editor");
@@ -27436,15 +28473,16 @@
           }
         }
       };
+      var controls = [this._button("underline"), this._button("bold"), this._button("italic"), {}];
       var editorToolbar = {
         view: "toolbar",
         id: "toolbar",
-        elements: [this._button("underline"), this._button("bold"), this._button("italic"), {}]
+        elements: controls
       };
       var rows = [editorToolbar, editField];
 
-      if (this.config.labelPosition === "top" || !this.config.labelWidth) {
-        editorToolbar.elements.concat([{
+      if (this.config.labelPosition === "top") {
+        editorToolbar.elements = controls.concat([{
           view: "label",
           label: this.config.label,
           align: "right"
@@ -27452,8 +28490,8 @@
           width: 4
         }]);
         this.rows_setter(rows);
-      } else {
-        this.config.borderless = true;
+      } else if (this.config.labelWidth) {
+        this.config.margin = 0;
         this.cols_setter([{
           template: this.config.label || " ",
           css: "webix_richtext_inp_label" + (this.config.required ? " webix_required" : ""),
@@ -27462,7 +28500,10 @@
         }, {
           rows: rows
         }]);
-      }
+      } else this.rows_setter(rows);
+    },
+    labelWidth_setter: function (value) {
+      return value ? Math.max(value, $active.dataPadding) : 0;
     },
     _getselection: function () {
       var top = this;
@@ -27560,9 +28601,9 @@
       return value || (value === 0 ? "0" : "");
     }
   };
-  var view$O = exports.protoUI(api$O, IdSpace, layout.view);
+  var view$P = exports.protoUI(api$P, IdSpace, layout.view);
 
-  var api$P = {
+  var api$Q = {
     name: "proto",
     $init: function () {
       this.data.provideApi(this, true);
@@ -27581,13 +28622,13 @@
     on_mouse_move: {},
     type: {}
   };
-  var view$P = exports.protoUI(api$P, PagingAbility, DataMarks, AutoTooltip, ValidateCollection, RenderStack, DataLoader, base$1.view, EventSystem, Settings);
+  var view$Q = exports.protoUI(api$Q, PagingAbility, DataMarks, AutoTooltip, ValidateCollection, RenderStack, DataLoader, base$1.view, EventSystem, Settings);
   var proto = {
-    api: api$P,
-    view: view$P
+    api: api$Q,
+    view: view$Q
   };
 
-  var api$Q = {
+  var api$R = {
     name: "list",
     _listClassName: "webix_list",
     _itemClassName: "webix_list_item",
@@ -27597,7 +28638,6 @@
       this._auto_resize = bind(this._auto_resize, this);
       this.data.attachEvent("onStoreUpdated", this._auto_resize);
       this.data.attachEvent("onSyncApply", this._auto_resize);
-      this.attachEvent("onAfterRender", this._correct_width_scroll);
 
       this._viewobj.setAttribute("role", "listbox");
     },
@@ -27642,7 +28682,14 @@
       return Math.floor(this._content_height / this._one_height());
     },
     _auto_resize: function () {
-      if (this._settings.autoheight || this._settings.autowidth) this.resize();
+      var c = this._settings;
+      if (c.autoheight || c.autowidth) return this.resize();
+
+      if (c.layout == "y") {
+        if (c.yCount) this._auto_height_calc(c.yCount);
+      } else {
+        if (c.xCount) this._auto_width_calc(c.xCount);
+      }
     },
     _auto_height_calc: function (count) {
       var value = this.data.$pagesize || this.count();
@@ -27665,9 +28712,6 @@
 
       if (this._settings.autowidth && value < (count || Infinity)) count = value;
       return this.type.width * count;
-    },
-    _correct_width_scroll: function () {
-      if (this._settings.layout == "x") this._dataobj.style.width = this.type.width != "auto" ? this.type.width * this.count() + "px" : "auto";
     },
     $getSize: function (dx, dy) {
       if (this._settings.layout == "y") {
@@ -27746,10 +28790,10 @@
       return id;
     }
   };
-  var view$Q = exports.protoUI(api$Q, CustomPrint, KeysNavigation, DataMove, DragItem, MouseEvents, SelectionModel, Scrollable, proto.view, CopyPaste);
+  var view$R = exports.protoUI(api$R, CustomPrint, KeysNavigation, DataMove, DragItem, MouseEvents, SelectionModel, Scrollable, proto.view, CopyPaste);
   var list = {
-    api: api$Q,
-    view: view$Q
+    api: api$R,
+    view: view$R
   };
 
   /*
@@ -27777,7 +28821,7 @@
       }
     }
   });
-  var api$R = {
+  var api$S = {
     name: "uploader",
     defaults: {
       autosend: true,
@@ -27981,9 +29025,343 @@
       return data.join(",");
     }
   };
-  var view$R = exports.protoUI(api$R, button$1.view);
+  var view$S = exports.protoUI(api$S, button$1.view);
 
-  var api$S = {
+  var api$T = {
+    name: "texthighlight",
+    defaults: {
+      template: function (obj, common) {
+        var name = obj.name || obj.id;
+        var id = "x" + uid();
+
+        var width = common._get_input_width(obj);
+
+        var html = "<div class=\"webix_text_highlight\" style=\"width:".concat(width, "px;\"><div class=\"webix_text_highlight_value\""); // iOS adds 3px of (unremovable) padding to the left and right of a textarea
+
+        if (obj.type == "textarea" && env.mobile && env.isSafari) html += " style=\"margin-left:".concat($active.dataPadding + 3, "px; margin-right:").concat($active.dataPadding + 3, "px;\"");
+        html += "></div></div>";
+
+        if (obj.type == "textarea") {
+          html += "".concat(common._baseInputHTML("textarea"), " style=\"width:").concat(width, "px;\" id=\"").concat(id, "\" name=\"").concat(name, "\" class=\"webix_inp_textarea\">").concat(common._pattern(obj.value), "</textarea>");
+          return common.$renderInput(obj, html, id);
+        } else return html + common.$renderInput(obj);
+      },
+      highlight: function (text$$1) {
+        return template.escape(text$$1);
+      },
+      type: "text"
+    },
+    $init: function (config) {
+      var _this = this;
+
+      var type = config.type || this.defaults.type;
+      this._viewobj.className += " webix_el_" + type;
+
+      if (type == "textarea") {
+        config.height = config.height || 0;
+        config.minHeight = config.minHeight || 60;
+        this._skipSubmit = true;
+      } else {
+        //input hasn't scroll event
+        this.scrollEv = event$1(document, "selectionchange", function () {
+          if (_this.$view.contains(document.getSelection().focusNode)) _this._syncText();
+        });
+        this.attachEvent("onDestruct", function () {
+          eventRemove(_this.scrollEv);
+        });
+      } //setValue
+
+
+      this.attachEvent("onChange", function () {
+        return _this._syncText();
+      });
+      this.attachEvent("onAfterRender", function () {
+        _this._updatePos();
+
+        var evs = ["scroll", "focus", "blur", "paste", "cut", "keyup", "input"];
+        evs.forEach(function (ev) {
+          return _event(_this.getInputNode(), ev, function () {
+            return _this._syncText();
+          });
+        });
+
+        _this._handleInput(true);
+      });
+    },
+    $setSize: function () {
+      text.api.$setSize.apply(this, arguments);
+
+      this._updatePos();
+    },
+    _getLabelHeight: function (top) {
+      if (this._settings.type == "textarea") return top ? this._labelTopHeight - this._settings.inputPadding : "";
+      return text.api._getLabelHeight.apply(this, arguments);
+    },
+    getInputNode: function () {
+      return this._dataobj.querySelector(this._settings.type == "text" ? "input" : "textarea");
+    },
+    _getHighlightNode: function () {
+      return this._dataobj.querySelector(".webix_text_highlight");
+    },
+    _handleInput: function (init) {
+      var highlight = this._getHighlightNode().firstElementChild;
+
+      var text$$1 = this.getValue();
+
+      if (init || text$$1 != (this._lastText || "")) {
+        this._lastText = text$$1; //add &nbsp; at the end because div ignores last empty line + it gives better positioning
+
+        highlight.innerHTML = this._settings.highlight.apply(this, [text$$1]) + "&nbsp;";
+      }
+    },
+    _handleScroll: function () {
+      var highlight = this._getHighlightNode();
+
+      if (this._settings.type == "text") highlight = highlight.firstElementChild;
+      var text$$1 = this.getInputNode();
+      highlight.scrollTop = text$$1.scrollTop;
+      highlight.scrollLeft = text$$1.scrollLeft;
+    },
+    _updatePos: function () {
+      if (this._rendered_input && this.isVisible()) {
+        var input = this.getInputNode();
+
+        var highlightStyles = this._getHighlightNode().style;
+
+        highlightStyles.left = input.offsetLeft + "px";
+        highlightStyles.top = input.offsetTop + "px";
+        highlightStyles.height = input.getBoundingClientRect().height + "px";
+      }
+    },
+    _syncText: function () {
+      delay(function () {
+        if (this.$destructed) return;
+
+        this._handleInput();
+
+        this._handleScroll();
+      }, this);
+    }
+  };
+  var view$T = exports.protoUI(api$T, text.view);
+
+  var api$U = {
+    name: "timeboard",
+    defaults: {
+      width: 270,
+      padding: $active.layoutPadding.space,
+      margin: $active.layoutMargin.form,
+      hours: true,
+      seconds: false,
+      twelve: /%([a,A])/.test(i18n.timeFormat)
+    },
+    $init: function (config) {
+      var _this = this;
+
+      this.$view.className += " webix_timeboard";
+      var rows = [];
+      var twelve = !isUndefined(config.twelve) ? config.twelve : this.defaults.twelve;
+      var hours = !isUndefined(config.hours) ? config.hours : this.defaults.hours;
+      var seconds = config.seconds || this.defaults.seconds;
+
+      if (isUndefined(config.height)) {
+        var nrows = 1 + hours * 1 + 1 + seconds * 1 + !!config.button * 1;
+        config.height = $active.inputHeight * nrows + (config.margin || this.defaults.margin) * (nrows - 1) + (config.padding || this.defaults.padding) * 2;
+      }
+
+      rows.push(this._getClock(hours, seconds, twelve));
+      rows.push.apply(rows, _toConsumableArray(this._getSliders(hours, seconds, twelve)));
+      if (config.button) rows.push(this._getDoneButton());
+      config.rows = [{
+        view: "form",
+        elements: rows,
+        padding: 0,
+        borderless: true,
+        on: {
+          onChange: function () {
+            return _this._recollectValues();
+          }
+        }
+      }];
+      this.$ready.push(function () {
+        this._form = this.queryView("form");
+        var value = this._settings.value;
+        if (value) this.setValue(value);
+      });
+    },
+    // accepts strings and Dates
+    setValue: function (value) {
+      var old = this._settings.value;
+      value = this.$prepareValue(value);
+
+      if (!wDate.equal(value, old)) {
+        this._settings.value = value;
+        this.callEvent("onChange", [value, old]);
+      }
+
+      if (value) this.$setValue(value);
+    },
+    $prepareValue: function (value) {
+      if (typeof value === "string") value = i18n.parseTimeFormatDate(value);
+      return value;
+    },
+    $setValue: function (value) {
+      var obj = {};
+      obj.minutes = obj.sminutes = value.getMinutes();
+      if (this._settings.hours) obj.shours = obj.hours = value.getHours();
+      if (this._settings.seconds) obj.sseconds = obj.seconds = value.getSeconds();
+
+      if (this._settings.twelve) {
+        if (!isUndefined(obj.hours)) {
+          obj.day_part = obj.hours > 11 ? i18n.pm[1] : i18n.am[1];
+          obj.hours = !obj.hours || obj.hours == 12 ? 12 : obj.hours % 12;
+          obj.shours = obj.hours == 12 ? 0 : obj.hours;
+        }
+      }
+
+      this._form.setValues(obj);
+    },
+    _recollectValues: function () {
+      var values = this.$getValue();
+      var date = this._settings.value ? wDate.copy(this._settings.value) : new Date();
+      date.setHours(values.hours || 0);
+      date.setMinutes(values.minutes);
+      if (this._settings.seconds) date.setSeconds(values.seconds);
+      this.setValue(date);
+    },
+    $getValue: function () {
+      var values = this._form.getValues();
+
+      if (this._settings.twelve && this._settings.hours) {
+        if (values.day_part == i18n.pm[1] && values.hours < 12) values.hours = (values.hours * 1 + 12).toString();else if (values.day_part == i18n.am[1] && values.hours == 12) values.hours = 0;
+      }
+
+      return values;
+    },
+    getValue: function () {
+      if (this._settings.stringResult) {
+        var values = this.$getValue();
+        var res = [];
+        if (values.hours) res.push(values.hours);
+        if (values.minutes) res.push(values.minutes);
+        if (values.seconds) res.push(values.seconds);
+        return res.join(":");
+      } else return this._settings.value;
+    },
+    _getClock: function (hours, seconds, twelve) {
+      var inputs = [{}, this._getText("minutes"), {}];
+      var separator = {
+        css: "colon_template",
+        template: "<span class=\"colon\">:</span>",
+        borderless: true,
+        width: 18
+      };
+      if (hours) inputs.splice(1, 0, this._getText("hours", twelve), copy(separator));
+      if (seconds) inputs.splice(-1, 0, copy(separator), this._getText("seconds"));
+
+      if (twelve && hours) {
+        var am = i18n.am[1];
+        var pm = i18n.pm[1];
+        var control = {
+          view: "label",
+          name: "day_part",
+          css: "day_part",
+          template: "<div tabindex='0' role='button' class='webix_el_box' style='width:#awidth#px;height:#aheight#px;line-height:#cheight#px'>#label#</div>",
+          inputWidth: 25,
+          on: {
+            onItemClick: function () {
+              this.setValue(this.getValue() == am ? pm : am);
+            },
+            onKeyPress: function (code, e) {
+              this._onKeyPress(code, e);
+            }
+          }
+        };
+        inputs.splice(-1, 1, control);
+      }
+
+      return {
+        type: "clean",
+        cols: inputs
+      };
+    },
+    _getText: function (name, twelve) {
+      var _this2 = this;
+
+      var max = name === "hours" ? twelve ? 11 : 23 : 59;
+      return {
+        view: "text",
+        width: 46,
+        name: name,
+        format: {
+          parse: function (a) {
+            if (a == 12 && name === "hours") a = "00";
+            return a.length > 1 ? a.replace(/^0/, "") : a || 0;
+          },
+          edit: function (a) {
+            if (a <= 0 && name === "hours" && twelve) a = 12;else if (a < 0) a = 0;else if (a > max) a = max;
+            return (a + "").length === 1 ? "0" + a : a + "" || "00";
+          }
+        },
+        on: {
+          onChange: function (nv) {
+            _this2._form.elements["s" + name].setValue((twelve && name === "hours" && (!nv || nv == 12) ? 0 : nv) * 1);
+          }
+        }
+      };
+    },
+    _getSliders: function (hours, seconds, twelve) {
+      var sliders = [this._getSlider("minutes", i18n.calendar.minutes, 59)];
+
+      if (hours) {
+        sliders.unshift(this._getSlider("hours", i18n.calendar.hours, twelve ? 11 : 23));
+      }
+
+      if (seconds) sliders.push(this._getSlider("seconds", i18n.timeboard.seconds, 59, twelve));
+      return sliders;
+    },
+    _getSlider: function (name, title, max, twelve) {
+      var _this3 = this;
+
+      var enLocale = name === "hours" && twelve;
+      var config = {
+        view: "slider",
+        name: "s" + name,
+        title: title,
+        moveTitle: false,
+        min: 0,
+        max: max,
+        on: {
+          onChange: function (nv) {
+            _this3._form.elements[name].setValue((enLocale ? !nv || nv == 12 ? 12 : nv % 12 : nv) + "");
+          },
+          onSliderDrag: function () {
+            var nv = this.getValue();
+            var form = this.getFormView();
+            form.blockEvent();
+            form.elements[name].setValue((enLocale ? !nv || nv == 12 ? 12 : nv % 12 : nv) + "");
+            form.unblockEvent();
+          }
+        }
+      };
+      return config;
+    },
+    _getDoneButton: function () {
+      var _this4 = this;
+
+      return {
+        view: "button",
+        value: i18n.calendar.done,
+        css: "webix_primary",
+        click: function () {
+          _this4.callEvent("onTimeSelect", [_this4._settings.value]);
+        }
+      };
+    }
+  };
+  var view$U = exports.protoUI(api$U, layout.view);
+
+  var api$V = {
     name: "suggest",
     defaults: {
       autofocus: false,
@@ -28051,18 +29429,24 @@
     _get_details: function () {
       return null;
     },
+    _set_input_value: function (text) {
+      this._last_input_target.value = text;
+    },
     _preselectMasterOption: function (data) {
+      var text = data.id ? this.getItemText(data.id) : data.text || data.value;
       var node;
 
-      if (data && this._settings.master) {
+      if (this._settings.master) {
         var master = $$(this._settings.master);
-        var text = data.id ? this.getItemText(data.id) : data.text || data.value;
         node = master.getInputNode();
-        if (node && master.$setValueHere) master.$setValueHere(text, data, this._get_details());else if (node) {
-          if (master.options_setter) text = this.getItemText(data.id);else if (data.value) text = master._get_visible_text ? master._get_visible_text(data.value) : data.value.toString();
-          if (isUndefined(node.value)) node.innerHTML = text;else node.value = text.replace(/<[^>]*>/g, "");
+
+        if (node) {
+          // restore last text to allow 'master' view to save new value on blur
+          var prev_text = master._settings.text;
+          if (master.options_setter) master.$setValue(data.$empty ? "" : data.id);else if (master.$setValueHere) master.$setValueHere(text, data, this._get_details());else master.$setValue(text);
+          master._settings.text = prev_text;
         }
-      }
+      } else if (this._last_input_target) this._set_input_value(text);
 
       node = node || this._last_input_target;
       if (node) node.focus();
@@ -28073,7 +29457,7 @@
       if (this._settings.master) {
         var master = $$(this._settings.master);
         if (refresh && data.id) master.refresh();else if (master.options_setter) master.setValue(data.$empty ? "" : data.id);else if (master.setValueHere) master.setValueHere(text, data, this._get_details());else master.setValue(text);
-      } else if (this._last_input_target && this._set_input_value) this._set_input_value(text);else if (this._last_input_target) this._last_input_target.value = text;
+      } else if (this._last_input_target) this._set_input_value(text);
 
       if (!refresh) {
         this.hide();
@@ -28081,9 +29465,6 @@
       }
 
       this.callEvent("onValueSuggest", [data, text]);
-      delay(function () {
-        callEvent("onEditEnd", []);
-      });
     },
     getMasterValue: function () {
       if (this._settings.master) return $$(this._settings.master).getValue();
@@ -28146,7 +29527,6 @@
           }
         }, this));
         list.data.attachEvent("onAfterFilter", bind(this._suggest_after_filter, this));
-        list.data.attachEvent("onStoreLoad", bind(this._suggest_after_filter, this));
         if (isUndefined(this._settings.fitMaster)) this._settings.fitMaster = true;
       } else if (type == "calendar") {
         list.attachEvent("onDateSelect", function () {
@@ -28166,6 +29546,18 @@
         });
       } else if (type == "colorboard") {
         list.attachEvent("onItemClick", function (value) {
+          this.getParentView().setMasterValue({
+            value: value
+          });
+        });
+      } else if (type == "timeboard") {
+        list.attachEvent("onTimeSelect", function (value) {
+          this.getParentView().setMasterValue({
+            value: value
+          });
+        });
+      } else if (type == "colorselect") {
+        list.attachEvent("onColorSelect", function (value) {
           this.getParentView().setMasterValue({
             value: value
           });
@@ -28202,9 +29594,11 @@
       this._non_ui_mode = true;
     },
     _suggestions: function (e) {
+      //should be before tab and arrows handlers: IME can call keydown twice
+      if (this._last_delay) this._last_delay = clearTimeout(this._last_delay);
       e = e || event;
       var list = this.getList();
-      var trg = e.target || e.srcElement;
+      var trg = e.target;
       if (trg == document.body && !this.isVisible() || trg.className == "webix_clipbuffer") return;
       this._last_input_target = trg;
       this._settings.master = trg.webix_master_id;
@@ -28223,14 +29617,14 @@
         return false;
       }
 
-      if (isUndefined(trg.value) && !trg.isContentEditable) return;
-      if (this._last_delay) this._last_delay = clearTimeout(this._last_delay);
+      var contentEditable = trg.getAttribute("contentEditable") == "true";
+      if (isUndefined(trg.value) && !contentEditable) return;
       this._last_delay = delay(function () {
         //focus moved to the different control, suggest is not necessary
         if (!this._non_ui_mode && UIManager.getFocus() != $$(this._settings.master)) return;
         this._resolve_popup = true; //spreadsheet use contentEditable div for cell highlighting
 
-        var val = trg.isContentEditable ? trg.innerText : trg.value;
+        var val = contentEditable ? trg.innerText : trg.value;
         if (this._before_filtering) this._before_filtering(); // used to prevent showing popup when it was initialized
 
         if (list.config.dataFeed) list.filter("value", val);else if (list.filter) {
@@ -28257,7 +29651,9 @@
       }
     },
     show: function (node) {
-      if (!this.isVisible() || this._last_input_target != node) {
+      var input = node && (node.tagName == "INPUT" || node.tagName == "TEXTAREA") ? node : null;
+
+      if (!this.isVisible() || input && input != this._last_input_target) {
         var list = this.getList();
 
         if (list.filter && !this._dont_unfilter) {
@@ -28266,14 +29662,14 @@
 
         if (this.$customWidth) {
           this.$customWidth(node);
-        } else if (node.tagName && this._settings.fitMaster) {
+        } else if (node && node.tagName && this._settings.fitMaster) {
           this._settings.width = node.offsetWidth - 2; //2 - borders
         }
 
         if (list._zoom_level) list.render();
         this.adjust(); // needed to return focus
 
-        if (node.tagName == "INPUT" || node.tagName == "TEXTAREA") this._last_input_target = node;
+        if (input) this._last_input_target = input;
       }
 
       popup.api.show.apply(this, arguments);
@@ -28300,16 +29696,17 @@
       var value;
       var master;
       if (this._settings.master) master = $$(this._settings.master);
-      if (master && master._settings.editable && master._applyChanges) master._applyChanges();else if (visible) {
-        if (list.count && list.count()) {
+      if (master && master._editable && master._settings.editable) master._applyChanges();else if (visible) {
+        if (list.count) {
           value = list.getSelectedId(false, true);
           if (list.count() == 1 && list.getFirstId() != value) value = list.getFirstId();
           if (value) value = list.getItem(value);
-        } else if (list.getSelectedDate && list.getSelectedDate()) value = {
-          value: list.getSelectedDate()
-        };else if (list.getValue && list.getValue()) value = {
-          value: list.getValue()
-        };
+        } else {
+          if (list.getSelectedDate) value = list.getSelectedDate();else if (list.getValue) value = list.getValue();
+          if (value) value = {
+            value: value
+          };
+        }
 
         if (value) this.setMasterValue(value);
       }
@@ -28352,12 +29749,13 @@
             list.moveSelection(_dir, false, false);
           }
 
-        if (list.count) data = list.getSelectedItem();else if (list.getSelectedDate) data = {
-          value: list.getVisibleDate()
-        };else if (list.getValue) data = {
-          value: list.getValue()
-        };
-        if (this.isVisible()) this._preselectMasterOption(data);
+        if (list.count) data = list.getSelectedItem(false);else {
+          if (list.getSelectedDate) data = list.getSelectedDate();else if (list.getValue) data = list.getValue();
+          if (data) data = {
+            value: data
+          };
+        }
+        if (data && this.isVisible()) this._preselectMasterOption(data);
         return true;
       }
 
@@ -28389,10 +29787,10 @@
       }
     }
   };
-  var view$S = exports.protoUI(api$S, popup.view);
+  var view$V = exports.protoUI(api$V, popup.view);
   var suggest = {
-    api: api$S,
-    view: view$S
+    api: api$V,
+    view: view$V
   };
 
   exports.protoUI({
@@ -28423,7 +29821,7 @@
     }
   }, template$1.view);
 
-  var api$T = {
+  var api$W = {
     name: "mentionsuggest",
     defaults: {
       symbol: "@",
@@ -28476,7 +29874,7 @@
     },
     _show_on_key_press: false
   };
-  var view$T = exports.protoUI(api$T, suggest.view);
+  var view$W = exports.protoUI(api$W, suggest.view);
 
   exports.protoUI({
     name: "daterange",
@@ -28485,7 +29883,7 @@
     }
   }, template$1.view);
 
-  var api$U = {
+  var api$X = {
     name: "daterangesuggest",
     defaults: {
       type: "daterange",
@@ -28529,85 +29927,14 @@
       }, this));
     }
   };
-  var view$U = exports.protoUI(api$U, suggest.view);
+  var view$X = exports.protoUI(api$X, suggest.view);
 
-  var api$V = {
-    $cssName: "datepicker",
+  exports.protoUI({
     name: "daterangepicker",
-    $init: function (config) {
-      //set non-empty initial value
-      this._settings.value = {}; // other types are not implemented
-
-      delete config.type; // only start/end values can be selected
-
-      delete config.multiselect;
-    },
     defaults: {
-      separator: " - "
-    },
-    _init_popup: function () {
-      var obj = this._settings;
-      if (obj.suggest) obj.popup = obj.suggest;else if (!obj.popup) {
-        obj.popup = obj.suggest = this.suggest_setter({
-          view: "daterangesuggest",
-          body: {
-            timepicker: obj.timepicker,
-            calendarCount: obj.calendarCount,
-            height: 250 + (obj.button || obj.icons ? 30 : 0)
-          }
-        });
-      }
-
-      this._init_once = function () {};
-    },
-    $prepareValue: function (value) {
-      value = value || {};
-      value.start = datepicker.api.$prepareValue.call(this, value.start ? value.start : null);
-      value.end = datepicker.api.$prepareValue.call(this, value.end ? value.end : null);
-      var daterange = $$(this._settings.popup).getRange();
-      return copy(daterange._correct_value(value));
-    },
-    $compareValue: function (oldvalue, value) {
-      var compare = datepicker.api.$compareValue;
-      var start = compare.call(this, oldvalue.start, value.start);
-      var end = compare.call(this, oldvalue.end, value.end);
-      return start && end;
-    },
-    $setValue: function (value) {
-      value = value || {};
-      this._settings.text = (value.start ? this._get_visible_text(value.start) : "") + (value.end ? this._settings.separator + this._get_visible_text(value.end) : "");
-
-      this._set_visible_text();
-    },
-    $render: function (obj) {
-      obj.value = this.$prepareValue(obj.value);
-      this.$setValue(obj.value);
-    },
-    getValue: function () {
-      var value = this._settings.value;
-      if (!this._rendered_input) value = this.$prepareValue(value) || null;else if (this._settings.editable) {
-        var formatDate = this._formatDate || i18n.dateFormatDate;
-        var iValue = (this.getInputNode().value || "").split(this._settings.separator);
-        value = this._formatValue(formatDate, {
-          start: iValue[0],
-          end: iValue[1]
-        });
-      }
-
-      if (this._settings.stringResult) {
-        var formatStr = i18n.parseFormatStr;
-        return this._formatValue(formatStr, value);
-      }
-
-      return value || null;
-    },
-    _formatValue: function (format, value) {
-      if (value.start) value.start = format(value.start);
-      if (value.end) value.end = format(value.end);
-      return value;
+      template: "GPL version doesn't support daterangepicker <br> You need Webix PRO"
     }
-  };
-  var view$V = exports.protoUI(api$V, datepicker.view);
+  }, template$1.view);
 
   exports.protoUI({
     name: "excelbar",
@@ -28642,7 +29969,7 @@
   */
   // #include ui/view.js
 
-  var api$W = {
+  var api$Y = {
     name: "video",
     $init: function (config) {
       if (!config.id) config.id = uid();
@@ -28678,7 +30005,7 @@
       controls: true
     }
   };
-  var view$W = exports.protoUI(api$W, base$1.view);
+  var view$Y = exports.protoUI(api$Y, base$1.view);
 
   exports.protoUI({
     name: "gage",
@@ -28702,7 +30029,7 @@
   }, template$1.view);
 
   var google, script;
-  var api$X = {
+  var api$Z = {
     name: "geochart",
     defaults: {
       chart: {
@@ -28902,10 +30229,10 @@
       }, this));
     }
   };
-  var view$X = exports.protoUI(api$X, DataLoader, EventSystem, base$1.view);
+  var view$Z = exports.protoUI(api$Z, DataLoader, EventSystem, base$1.view);
 
   var google$1, script$1;
-  var api$Y = {
+  var api$_ = {
     name: "google-map",
     $init: function () {
       this.$view.innerHTML = "<div class='webix_map_content' style='width:100%;height:100%'></div>";
@@ -29130,7 +30457,7 @@
       }
     }
   };
-  var view$Y = exports.protoUI(api$Y, DataLoader, EventSystem, base$1.view);
+  var view$_ = exports.protoUI(api$_, DataLoader, EventSystem, base$1.view);
 
   exports.protoUI({
     name: "organogram",
@@ -29539,7 +30866,7 @@
       var innerRadius = config.innerRadius && config.innerRadius < pieRadius ? config.innerRadius : pieRadius / 3;
       var x0 = config.x ? config.x : coord.x;
       var y0 = config.y ? config.y : coord.y;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = $active.backColor;
       ctx.beginPath();
       ctx.arc(x0, y0, innerRadius, 0, Math.PI * 2, true);
       ctx.fill();
@@ -29702,10 +31029,9 @@
       }
     },
     _correctBarParams: function (ctx, x, y, value, unit, barWidth, minValue) {
-      var xax = this._settings.xAxis;
       var axisStart = y;
 
-      if (!!xax && this._settings.origin != "auto" && this._settings.origin > minValue) {
+      if (this._settings.origin != "auto" && this._settings.origin > minValue) {
         y -= (this._settings.origin - minValue) * unit;
         axisStart = y;
         value = value - (this._settings.origin - minValue);
@@ -31329,13 +32655,6 @@
 
         var unitY = y - radius + units[units.length - 1];
         this.canvases["scale"].renderTextAt("middle", "left", x, unitY, configY.template(value.toString()), "webix_axis_item_y webix_radar");
-
-        if (ratios.length < 2) {
-          this._drawScaleSector(ctx, "arc", x, y, radius - units[units.length - 1], -Math.PI / 2, 3 * Math.PI / 2, i);
-
-          return;
-        }
-
         var startAlpha = -Math.PI / 2;
         /*possibly need  to moved in config*/
 
@@ -31358,9 +32677,12 @@
 
       for (i = 0; i < angles.length; i++) {
         p = this._getPositionByAngle(angles[i], x, y, radius);
-        if (configX.lines.call(this, data[i], i)) this._drawLine(ctx, x, y, p.x, p.y, configX ? configX.lineColor.call(this, data[i]) : "#cfcfcf", 1);
 
-        this._drawRadarScaleLabel(ctx, x, y, radius, angles[i], configX ? configX.template.call(this, data[i]) : "&nbsp;");
+        if (configX) {
+          if (configX.lines.call(this, data[i], i)) this._drawLine(ctx, x, y, p.x, p.y, configX.lineColor.call(this, data[i]), 1);
+
+          this._drawRadarScaleLabel(ctx, x, y, radius, angles[i], configX.template.call(this, data[i]));
+        }
       }
     },
     _drawScaleSector: function (ctx, shape, x, y, radius, a1, a2, i, j) {
@@ -32072,7 +33394,7 @@
     chart._drawLine(ctx, x0, y0, x1 + (isScroll ? chart._stockAnimationOffset : 0), y0, config.xAxis.color, 1);
   }
 
-  var api$Z = {
+  var api$10 = {
     name: "chart",
     $init: function (config) {
       this._series = [this._settings];
@@ -32251,7 +33573,7 @@
       }
 
       map.render(this._contentobj);
-      this._contentobj.lastChild.style.zIndex = 100;
+      this._contentobj.lastChild.style.zIndex = 80;
 
       this._applyBounds(this._contentobj.lastChild, bounds);
 
@@ -32516,7 +33838,7 @@
         lineColor: "#edeff0",
         template: "{obj}",
         lines: true,
-        bg: "#ffffff"
+        bg: $active.backColor
       });
 
       var templates = ["lineColor", "template", "lines", "bg"];
@@ -32944,7 +34266,18 @@
       } else for (i = 0; i < legend.values.length; i++) {
         legendItems.push(this._drawLegendText(legendContainer, legend.values[i].text, typeof legend.values[i].id != "undefined" ? _typeof(legend.values[i].id) : i, legend.values[i].$hidden));
       }
-      if (legendContainer.offsetWidth === 0) legendContainer.style.width = "auto";
+      var rendered = document.body.contains(this._contentobj);
+      var parentNode, d; // inside window
+
+      if (!rendered) {
+        d = create("DIV", {
+          "style": "visibility:hidden; position:absolute; top:0px; left:0px;"
+        }, "");
+        parentNode = this._contentobj.parentNode;
+        document.body.appendChild(d);
+        d.appendChild(this._contentobj);
+      }
+
       legendWidth = legendContainer.offsetWidth;
       legendHeight = legendContainer.offsetHeight;
       /*this._settings.legend.width = legendWidth;
@@ -32995,6 +34328,12 @@
       }
 
       ctx.restore();
+
+      if (!rendered) {
+        parentNode.appendChild(this._contentobj);
+        remove(d);
+      }
+
       legendItems = null;
     },
 
@@ -33271,7 +34610,7 @@
       map.addRect(id, [points[0].x - bounds.x, points[0].y - bounds.y, points[1].x - bounds.x, points[1].y - bounds.y], sIndex);
     }
   };
-  var view$Z = exports.protoUI(api$Z, Pie$1, BarChart, LineChart, BarHChart, StackedBarChart, StackedBarHChart, Spline$1, AreaChart, Radar, Scatter, Presets, SplineArea$1, DynamicChart, Group, AutoTooltip, DataLoader, MouseEvents, EventSystem, base$1.view);
+  var view$10 = exports.protoUI(api$10, Pie$1, BarChart, LineChart, BarHChart, StackedBarChart, StackedBarHChart, Spline$1, AreaChart, Radar, Scatter, Presets, SplineArea$1, DynamicChart, Group, AutoTooltip, DataLoader, MouseEvents, EventSystem, base$1.view);
 
   exports.protoUI({
     name: "rangechart",
@@ -33280,7 +34619,7 @@
     }
   }, template$1.view);
 
-  var api$_ = {
+  var api$11 = {
     name: "grouplist",
     defaults: {
       animate: {}
@@ -33310,7 +34649,7 @@
     },
     on_click: {
       webix_list_item: function (e, id) {
-        if (this._in_animation) {
+        if (this._animation_promise) {
           return false;
         }
 
@@ -33363,7 +34702,10 @@
         branch: this._nested_cursor
       };
     },
-    render: function () {
+    render: function (id, data, type$$1) {
+      var _this = this,
+          _arguments = arguments;
+
       var i, lastChain; //start filtering processing=>
 
       this._nested_chain = copy(this._nested_chain);
@@ -33389,9 +34731,9 @@
       } //<= end filtering processing
 
 
-      if (this._in_animation) {
-        return delay(this.render, this, arguments, 100);
-      }
+      if (this._animation_promise) return this._animation_promise.then(function () {
+        return _this.render.apply(_this, _arguments);
+      });
 
       for (i = 0; i < this._nested_cursor.length; i++) {
         this.data.getItem(this._nested_cursor[i]).$template = "";
@@ -33403,6 +34745,8 @@
       if (this.callEvent("onBeforeRender", [this.data])) {
         if (this._no_animation || !this._dataobj.innerHTML || !(animate.isSupported() && this._settings.animate) || this._prev_nested_chain_length == this._nested_chain.length) {
           // if dataobj is empty or animation is not supported
+          // don't repaint invisible data
+          if (id && type$$1 !== "delete" && this.data.getIndexById(id) === -1) return;
           RenderStack.render.apply(this, arguments);
         } else {
           //getRange - returns all elements
@@ -33417,27 +34761,9 @@
             /*scroll position restore*/
 
             var animArr = [clone(aniset), clone(aniset)];
-
-            if (this._is_level_down) {
-              this._back_scroll_states.push(this.getScrollState());
-
-              if (Touch && Touch.$active) {
-                animArr[0].y = 0;
-                animArr[1].y = -this.getScrollState().y;
-              }
-            } else {
-              var getScrollState = this._back_scroll_states.pop();
-
-              if (Touch && Touch.$active) {
-                animArr[0].y = -getScrollState.y;
-                animArr[1].y = -this.getScrollState().y;
-              }
-            }
-
+            var getScrollState;
+            if (this._is_level_down) this._back_scroll_states.push(this.getScrollState());else getScrollState = this._back_scroll_states.pop();
             var line = animate.formLine(next_div, this._dataobj, aniset);
-            /*keeping scroll position*/
-
-            if (Touch && Touch.$active) Touch._set_matrix(next_div, 0, this._is_level_down ? 0 : animArr[0].y, "0ms");
             aniset.master = this;
 
             aniset.callback = function () {
@@ -33445,25 +34771,19 @@
               /*scroll position restore*/
 
               if (!this._is_level_down) {
-                if (Touch && Touch.$active) {
-                  delay(function () {
-                    Touch._set_matrix(next_div, 0, animArr[0].y, "0ms");
-                  }, this);
-                } else if (getScrollState) this.scrollTo(0, getScrollState.y);
-              } else if (!(Touch && Touch.$active)) {
-                this.scrollTo(0, 0);
-              }
+                if (getScrollState) this.scrollTo(0, getScrollState.y);
+              } else this.scrollTo(0, 0);
 
               animate.breakLine(line);
               aniset.master = aniset.callback = null;
-              this._htmlmap = null; //clear map, it will be filled at first getItemNode
+              this._htmlmap = this._animation_promise = null; //clear map, it will be filled at first getItemNode
 
-              this._in_animation = false;
+              aniset.wait_animation.resolve();
               this.callEvent("onAfterRender", []);
             };
 
-            this._in_animation = true;
             animate(line, animArr);
+            this._animation_promise = aniset.wait_animation = Deferred.defer();
           }
         }
 
@@ -33529,11 +34849,11 @@
       RenderStack.showItem.call(this, id);
     }
   };
-  var view$_ = exports.protoUI(api$_, Group, list.view);
+  var view$11 = exports.protoUI(api$11, Group, list.view);
 
-  type(view$_, {});
+  type(view$11, {});
 
-  var api$10 = {
+  var api$12 = {
     name: "unitlist",
     _id:
     /*@attr*/
@@ -33563,6 +34883,7 @@
         this._setUnits();
 
         if (this.units) {
+          this.callEvent("onUnits", []);
           this._dataobj.innerHTML = this._getUnitRange().map(this._toHTML, this).join("");
           this._htmlmap = null;
         }
@@ -33597,19 +34918,18 @@
       return this.type.templateStart(obj, this.type, mark) + (obj.$template ? this.type["template" + obj.$template] : this.type.template)(obj, this.type) + this.type.templateEnd(obj, this.type);
     },
     _getUnitRange: function () {
-      var data, i, u, unit;
-      data = [];
+      var data = [];
       var min = this.data.$min || 0;
       var max = this.data.$max || Infinity;
       var count = 0;
 
-      for (u in this.units) {
+      for (var u in this.units) {
         data.push({
           $unit: u
         });
-        unit = this.units[u];
+        var unit = this.units[u];
 
-        for (i = 0; i < unit.length; i++) {
+        for (var i = 0; i < unit.length; i++) {
           if (count == min) data = [{
             $unit: u
           }];
@@ -33634,19 +34954,30 @@
     },
     type: {
       headerHeight: 20,
+      classname: function (obj, type, marks) {
+        var css = "webix_list_item";
+        if (type.css) css += " webix_list_" + type.css + "_item";
+        if (marks && marks.$css) css += " " + marks.$css;
+
+        if (obj.$css) {
+          if (_typeof(obj.$css) == "object") obj.$css = createCss(obj.$css);
+          css += " " + obj.$css;
+        }
+
+        return css;
+      },
       templateHeader: function (value) {
         return "<span class='webix_unit_header_inner'>" + value + "</span>";
       },
       templateStart: function (obj, type, marks) {
         if (obj.$unit) return type.templateStartHeader.apply(this, arguments);
-        var className = "webix_list_item webix_list_" + type.css + "_item" + (marks && marks.webix_selected ? " webix_selected" : "") + (obj.$css ? obj.$css : "");
         var style = "width:" + type.widthSize(obj, type, marks) + "; height:" + type.heightSize(obj, type, marks) + "; overflow:hidden;" + (type.layout && type.layout == "x" ? "float:left;" : "");
         return "<div " +
         /*@attr*/
-        "webix_item_id" + "=\"" + obj.id + "\" class=\"" + className + "\" style=\"" + style + "\" " + type.aria(obj, type, marks) + ">";
+        "webix_item_id" + "=\"" + obj.id + "\" class=\"" + type.classname(obj, type, marks) + "\" style=\"" + style + "\" " + type.aria(obj, type, marks) + ">";
       },
       templateStartHeader: function (obj, type, marks) {
-        var className = "webix_unit_header webix_unit_" + type.css + "_header" + (obj.$selected ? "_selected" : "");
+        var className = "webix_unit_header" + (type.css ? " webix_unit_header_" + type.css + "_item" : "");
         var style = "width:" + type.widthSize(obj, type, marks) + "; height:" + type.headerHeight + "px; overflow:hidden;";
         return "<div " +
         /*@attr*/
@@ -33658,7 +34989,7 @@
       this.type.headerHeight = $active.unitHeaderHeight;
     }
   };
-  var view$10 = exports.protoUI(api$10, list.view);
+  var view$12 = exports.protoUI(api$12, list.view);
 
   i18n.dbllist = {
     selectAll: "<span class='webix_icon wxi-angle-double-right'></span>",
@@ -33666,7 +34997,7 @@
     deselectAll: "<span class='webix_icon wxi-angle-double-left'></span>",
     deselectOne: "<span class='webix_icon wxi-angle-left'></span>"
   };
-  var api$11 = {
+  var api$13 = {
     name: "dbllist",
     defaults: {
       borderless: true
@@ -33858,9 +35189,9 @@
       return value.join(",");
     }
   };
-  var view$11 = exports.protoUI(api$11, AtomDataLoader, IdSpace, layout.view);
+  var view$13 = exports.protoUI(api$13, AtomDataLoader, IdSpace, layout.view);
 
-  var api$12 = {
+  var api$14 = {
     name: "tree",
     defaults: {
       scroll: "auto",
@@ -33871,8 +35202,6 @@
 
       exports.extend(this.data, TreeStore, true);
       exports.extend(this.on_click, TreeClick);
-      this.attachEvent("onAfterRender", this._refresh_scroll);
-      this.attachEvent("onPartialRender", this._refresh_scroll);
       this.data.provideApi(this, true);
 
       this._viewobj.setAttribute("role", "tree");
@@ -33993,12 +35322,12 @@
       templateCopy: template("#value#")
     }, TreeType)
   };
-  var view$12 = exports.protoUI(api$12, TreeStateCheckbox, Group, TreeAPI, DragItem, TreeDataMove, SelectionModel, KeysNavigation, MouseEvents, Scrollable, TreeDataLoader, proto.view, TreeRenderStack, CopyPaste, EventSystem);
+  var view$14 = exports.protoUI(api$14, TreeStateCheckbox, Group, TreeAPI, DragItem, TreeDataMove, SelectionModel, KeysNavigation, MouseEvents, Scrollable, TreeDataLoader, proto.view, TreeRenderStack, CopyPaste, EventSystem);
   var tree = {
-    api: api$12,
-    view: view$12
+    api: api$14,
+    view: view$14
   };
-  type(view$12, {
+  type(view$14, {
     name: "lineTree",
     css: "webixLineTree",
     icon: function (obj, common) {
@@ -34060,7 +35389,7 @@
     }
   });
 
-  var api$13 = {
+  var api$15 = {
     name: "treemap",
     defaults: {
       activeItem: false,
@@ -34409,7 +35738,7 @@
       templateEnd: template("</div>")
     }
   };
-  var view$13 = exports.protoUI(api$13, Group, TreeAPI, SelectionModel, KeysNavigation, MouseEvents, Scrollable, TreeDataLoader, proto.view, TreeRenderStack, CopyPaste, EventSystem);
+  var view$15 = exports.protoUI(api$15, Group, TreeAPI, SelectionModel, KeysNavigation, MouseEvents, Scrollable, TreeDataLoader, proto.view, TreeRenderStack, CopyPaste, EventSystem);
 
   /*
   	UI:DataView
@@ -34424,7 +35753,7 @@
   // #include core/keynav.js
   // #include core/print.js
 
-  var api$14 = {
+  var api$16 = {
     name: "dataview",
     $init: function (config) {
       if (config.sizeToContent) //method need to be called before data-loaders
@@ -34436,8 +35765,9 @@
       if (config.autoheight) config.scroll = false;
 
       if (type && type.type == "tiles") {
-        this._viewobj.firstChild.style.padding = "8px";
-        this._tilesPadding = 8;
+        this._tilesPadding = type.padding || this.type.padding;
+        this._viewobj.firstChild.style.float = "left";
+        this._viewobj.firstChild.style.padding = this._tilesPadding / 2 + "px";
       }
 
       this._contentobj.className += " webix_dataview";
@@ -34446,10 +35776,11 @@
     },
     _after_init_call: function () {
       var test = create("DIV", 0, this.type.template({}));
+      test.className = "webix_dataview_item";
       test.style.position = "absolute";
       document.body.appendChild(test);
-      this.type.width = test.offsetWidth;
-      this.type.height = test.offsetHeight;
+      this.type.width = test.offsetWidth + this._tilesPadding;
+      this.type.height = test.offsetHeight + this._tilesPadding;
       remove(test);
     },
     defaults: {
@@ -34480,10 +35811,11 @@
       templateLoading: template("Loading..."),
       width: 160,
       height: 50,
+      padding: 8,
       classname: function (obj, common, marks) {
         var css = "webix_dataview_item";
         if (common.css) css += " " + common.css;
-        if (common.type && common.type.toString() == "tiles") css += " tiles ";
+        if (common.type) css += " " + common.type;
 
         if (obj.$css) {
           if (_typeof(obj.$css) == "object") obj.$css = createCss(obj.$css);
@@ -34493,21 +35825,29 @@
         if (marks && marks.$css) css += " " + marks.$css;
         return css;
       },
-      tilesStart: function (obj, common) {
-        if (common.type == "tiles") return "<div class=\"webix_dataview_inner_item\" style=\"box-sizing:border-box; overflow:hidden;\">";
-        return "";
-      },
-      tilesEnd: function (obj, common) {
-        if (common.type == "tiles") return "</div>";
-        return "";
-      },
       aria: function (obj, common, marks) {
         return "role=\"option\"" + (marks && marks.webix_selected ? " aria-selected=\"true\" tabindex=\"0\"" : " tabindex=\"-1\"");
       },
-      templateStart: template("<div " +
-      /*@attr*/
-      "webix_l_id" + "=\"#id#\" class=\"{common.classname()}\" {common.aria()} style=\"width:{common.width}px; height:{common.height}px; float:left; overflow:hidden;\">{common.tilesStart()}"),
-      templateEnd: template("{common.tilesEnd()}</div>")
+      templateStart: function (obj, common, marks) {
+        var width = common.width,
+            height = common.height;
+        var padding = 0;
+
+        if (common.type == "tiles") {
+          width -= common.padding;
+          height -= common.padding;
+          padding = common.padding / 2;
+        }
+
+        return "<div " +
+        /*@attr*/
+        "webix_l_id=\"" + obj.id + "\" class=\"" + common.classname(obj, common, marks) + "\" " + common.aria(obj, common, marks) + " style=\"margin:" + padding + "px; width:" + width + "px; height:" + height + "px; float:left; overflow:hidden;\">";
+      },
+      templateEnd: template("</div>")
+    },
+    $dropHTML: function () {
+      var p = this._tilesPadding;
+      return "<div class=\"webix_drop_area_inner\" style=\"width:".concat(this.type.width - p, "px; height:").concat(this.type.height - p, "px; margin:").concat(p / 2, "px\"></div>");
     },
     _calck_autoheight: function (width) {
       return this._settings.height = this.type.height * Math.ceil(this.data.count() / Math.floor(width / this.type.width));
@@ -34521,11 +35861,13 @@
       return mode;
     },
     $getSize: function (dx, dy) {
-      if (this._settings.xCount > 0 && this.type.width != "auto" && !this._autowidth) this._settings.width = this.type.width * this._settings.xCount + (this._scroll_y ? env.scrollSize : 0);
-      if (this._settings.yCount && this.type.height != "auto") this._settings.height = this.type.height * this._settings.yCount;
+      if (this._settings.xCount && this.type.width != "auto" && !this._autowidth) this._settings.width = this.type.width * this._settings.xCount + this._tilesPadding + (this._scroll_y ? env.scrollSize : 0);
+      if (this._settings.yCount && this.type.height != "auto" && !this._autoheight) this._settings.height = this.type.height * this._settings.yCount + this._tilesPadding;
       var width = this._settings.width || this._content_width;
 
       if (this._settings.autoheight && width) {
+        this._recalk_counts();
+
         this._calck_autoheight(width);
 
         this.scroll_setter(false);
@@ -34534,30 +35876,30 @@
       return base$1.api.$getSize.call(this, dx, dy);
     },
     _recalk_counts: function () {
-      var render = false;
-
-      if (this._settings.yCount && this.type.height == "auto") {
+      if (this._settings.yCount && (this._autoheight || this.type.height == "auto")) {
         this.type.height = Math.floor((this._content_height - this._tilesPadding) / this._settings.yCount);
-        render = true;
+        this._autoheight = this._settings.yCount;
       }
 
-      if (this._settings.xCount && (this.type.width == "auto" || this._autowidth)) {
-        this._autowidth = true; //flag marks that width was set to "auto" initially
+      if (this._settings.xCount && (this._autowidth || this.type.width == "auto")) {
+        this.type.width = Math.floor((this._content_width - this._tilesPadding) / this._settings.xCount);
+        this._autowidth = this._settings.xCount;
+      }
 
-        this.type.width = Math.floor((this._content_width - this._tilesPadding * 2) / this._settings.xCount);
-        render = true;
-      } else this._autowidth = false;
-
-      return render;
+      return this._autoheight || this._autowidth;
     },
     $setSize: function (x, y) {
+      var c = this._settings;
+
       if (base$1.api.$setSize.call(this, x, y)) {
-        if (this._settings.autoheight && this._calck_autoheight() != this._content_height) return delay(this.resize, this);
+        if (c.autoheight && this._calck_autoheight() != this._content_height) return delay(this.resize, this);
         if (this._recalk_counts() || this._render_visible_rows) this.render();
+      } else if (c.yCount && c.yCount != this._autoheight || c.xCount && c.xCount != this._autowidth) {
+        if (this._recalk_counts()) this.render();
       }
     }
   };
-  var view$14 = exports.protoUI(api$14, DataMove, DragItem, MouseEvents, KeysNavigation, SelectionModel, Scrollable, CustomPrint, proto.view);
+  var view$16 = exports.protoUI(api$16, DataMove, DragItem, MouseEvents, KeysNavigation, SelectionModel, Scrollable, CustomPrint, proto.view);
 
   i18n.pager = {
     first: "<span class='webix_icon wxi-angle-double-left'></span>",
@@ -34565,7 +35907,7 @@
     next: "<span class='webix_icon wxi-angle-right'></span>",
     prev: "<span class='webix_icon wxi-angle-left'></span>"
   };
-  var api$15 = {
+  var api$17 = {
     defaults: {
       size: 10,
       //items on page
@@ -34813,13 +36155,14 @@
       this._pgInAnimation = true;
     }
   };
-  var view$15 = exports.protoUI(api$15, MouseEvents, SingleRender, base$1.view, EventSystem);
+  var view$17 = exports.protoUI(api$17, MouseEvents, SingleRender, base$1.view, EventSystem);
 
-  var api$16 = {
+  var api$18 = {
     name: "comments",
     defaults: {
       sendAction: "click",
-      mode: "comments"
+      mode: "comments",
+      highlight: true
     },
     $init: function (config) {
       this.$view.className += " webix_comments";
@@ -34828,7 +36171,7 @@
       if (!config.moreButton) config.moreButton = template(i18n.comments.moreComments);
 
       if (!config.readonly) {
-        config.rows.push(this._configForm());
+        config.rows.push(this._configForm(config));
 
         this._initMenu();
       }
@@ -34844,17 +36187,11 @@
       var _this = this;
 
       // store UI blocks
-      this._list = this.queryView({
-        view: "list"
-      });
-      this._form = this.queryView({
-        view: "form"
-      });
-      this._sendButton = this.queryView({
-        view: "button"
-      });
+      this._list = this.queryView("list");
+      this._form = this.queryView("form");
+      this._sendButton = this.queryView("button");
       this._input = this.queryView({
-        view: "textarea"
+        localId: "textarea"
       });
       if (this.config.mentions) this._initMentions(this.config.mentions); //provide data-like API
 
@@ -34875,11 +36212,7 @@
           var view = $$(e);
 
           if (view == _this._input) {
-            _this._changeTextarea(true);
-
-            delay(function () {
-              _this._input.focus();
-            });
+            _this.focus();
           } else if (view !== _this._sendButton && view !== _this._listMenu && (!_this._userList || view !== _this._userList.getList()) && (!e || (e.target.className || "").toString().indexOf("webix_comments_menu") === -1)) {
             _this._changeTextarea();
           }
@@ -34894,7 +36227,7 @@
       }
     },
     $onLoad: function (data, driver) {
-      this._fillList(data, driver);
+      return this._fillList(data, driver);
     },
     _fillList: function (data, driver) {
       var _this2 = this;
@@ -34903,8 +36236,12 @@
         view: "list"
       });
       list$$1.data.driver = driver;
-      var more = data.more;
-      data = driver.getRecords(data); //parse more comments
+      var more = false; //check if datastore
+
+      if (typeof data.serialize == "function") data = data.serialize();else {
+        more = data.more;
+        data = driver.getRecords(data);
+      } //parse more comments
 
       if (this._moreCall) {
         this._moreCall = false;
@@ -34954,6 +36291,8 @@
             });
           }
         }
+
+      return true;
     },
     $skin: function () {
       layout.api.$skin.call(this);
@@ -34999,7 +36338,7 @@
           values.date = new Date();
           this.add(values);
 
-          this._list.scrollTo(0, this._list.getLastId());
+          this._list.showItem(values.id);
         }
 
         this._form.clear();
@@ -35015,34 +36354,48 @@
       this.remove(id);
     },
     _changeTextarea: function (increase) {
-      //this behaviour is only for desktop, otherwise we will never see the button on mobile
-      if (env.touch) return;
-      var text = this._input;
+      // this behaviour is only for desktop, otherwise we will never see the button on mobile
+      // prevent unnecessary operations
+      if (env.touch || !increase == !this._text_expanded) return;
+      var text$$1 = this._input;
 
       if (increase) {
         this._sendButton.getParentView().show();
 
-        text.define({
+        text$$1.define({
           height: 84
         });
+        this._text_expanded = true;
       } else {
-        if (UIManager.hasFocus(this._sendButton)) UIManager.setFocus(this._list);
+        if (UIManager.hasFocus(this._sendButton)) {
+          UIManager.setFocus(this._list);
+        }
 
         this._sendButton.getParentView().hide();
 
-        text.define({
+        text$$1.define({
           height: this._inputHeight
         });
+        this._text_expanded = false;
       }
 
-      text.resize();
+      text$$1.resize();
+    },
+    focus: function () {
+      var _this3 = this;
+
+      this._changeTextarea(true);
+
+      delay(function () {
+        _this3._input.focus();
+      });
     },
     _toggleButton: function (value) {
       if (!value) value = this._input.getValue();
       if (value && !this._sendButton.isEnabled()) this._sendButton.enable();else if (!value && this._sendButton.isEnabled()) this._sendButton.disable();
     },
     _initMenu: function () {
-      var _this3 = this;
+      var _this4 = this;
 
       this._listMenu = ui({
         view: "contextmenu",
@@ -35059,26 +36412,26 @@
         }],
         on: {
           onShow: function () {
-            var ctx = _this3._listMenu.getContext();
+            var ctx = _this4._listMenu.getContext();
 
-            _this3._list.addCss(ctx.id, "active_menu");
+            _this4._list.addCss(ctx.id, "active_menu");
           },
           onHide: function () {
-            var ctx = _this3._listMenu.getContext();
+            var ctx = _this4._listMenu.getContext();
 
-            _this3._list.removeCss(ctx.id, "active_menu");
+            _this4._list.removeCss(ctx.id, "active_menu");
           },
           onItemClick: function (id) {
-            var ctx = _this3._listMenu.getContext();
+            var ctx = _this4._listMenu.getContext();
 
-            if (_this3.callEvent("onBeforeMenuAction", [id, ctx.id])) {
-              if (id == "edit") _this3.edit(ctx.id);else if (id == "remove") {
+            if (_this4.callEvent("onBeforeMenuAction", [id, ctx.id])) {
+              if (id == "edit") _this4.edit(ctx.id);else if (id == "remove") {
                 if (i18n.comments.confirmMessage) confirm({
                   text: i18n.comments.confirmMessage,
                   callback: function (res) {
-                    if (res) _this3._removeComment(ctx.id);
+                    if (res) _this4._removeComment(ctx.id);
                   }
-                });else _this3._removeComment(ctx.id);
+                });else _this4._removeComment(ctx.id);
               }
             }
           }
@@ -35087,42 +36440,55 @@
 
       this._destroy_with_me.push(this._listMenu);
     },
-    _configForm: function () {
-      var _this4 = this;
+    _configForm: function (config) {
+      var _this5 = this;
 
       var locale = i18n.comments;
+      var textarea = {
+        view: "textarea",
+        localId: "textarea",
+        css: "webix_comments_textarea",
+        height: this._inputHeight,
+        name: "text",
+        placeholder: locale["placeholder"],
+        keyPressTimeout: 100,
+        on: {
+          onTimedKeyPress: function () {
+            _this5._toggleButton();
+          },
+          onChange: function (newv) {
+            _this5._toggleButton(newv);
+          },
+          onKeyPress: function (code, ev) {
+            if (code == 13) {
+              var action = _this5._settings.sendAction,
+                  shift = ev.shiftKey;
+
+              if (action == "enter" && !shift || action !== "enter" && shift) {
+                preventEvent(ev);
+
+                _this5._saveComment(true);
+              }
+            }
+          }
+        }
+      };
+
+      if (config.highlight !== false) {
+        exports.extend(textarea, {
+          view: "texthighlight",
+          type: "textarea",
+          highlight: function (text$$1) {
+            return _this5._highlightMention(template.escape(text$$1), true);
+          }
+        }, true);
+      }
+
       return {
         view: "form",
         minHeight: 50,
         paddingX: 10,
-        elements: [{
-          view: "textarea",
-          css: "webix_comments_textarea",
-          height: this._inputHeight,
-          name: "text",
-          placeholder: locale["placeholder"],
-          keyPressTimeout: 100,
-          on: {
-            onTimedKeyPress: function () {
-              _this4._toggleButton();
-            },
-            onChange: function (newv) {
-              _this4._toggleButton(newv);
-            },
-            onKeyPress: function (code, ev) {
-              if (code == 13) {
-                var action = _this4._settings.sendAction,
-                    shift = ev.shiftKey;
-
-                if (action == "enter" && !shift || action !== "enter" && shift) {
-                  preventEvent(ev);
-
-                  _this4._saveComment(true);
-                }
-              }
-            }
-          }
-        }, {
+        elements: [textarea, {
           hidden: !env.touch,
           cols: [{}, {
             view: "button",
@@ -35131,14 +36497,31 @@
             value: locale["send"],
             autowidth: true,
             click: function () {
-              _this4._saveComment();
+              _this5._saveComment();
             }
           }]
         }]
       };
     },
+    _highlightMention: function (text$$1, textarea) {
+      var _this6 = this;
+
+      if (text$$1.indexOf("@") === -1) return text$$1;
+      var field;
+      if (this._settings.highlight === "users") field = this._userList ? this._userList._settings.textValue || "value" : "value";
+      var getMention = textarea ? this._markedText : this._markedHTML;
+      return text$$1.replace(getMention, function (text$$1, name1, _c, name2) {
+        return _this6._wrapName(text$$1, name2 || name1, field, textarea);
+      });
+    },
+    _wrapName: function (text$$1, name, field, textarea) {
+      if (field && !this._users.find(function (user) {
+        return user[field] == name;
+      }, true)) return text$$1;
+      return "<span class=\"webix_comments_mention\">".concat(textarea ? text$$1 : "@" + name, "</span>");
+    },
     _configList: function (config) {
-      var _this5 = this;
+      var _this7 = this;
 
       var css = "webix_comments_";
       var type = {
@@ -35147,43 +36530,33 @@
           return "<span class = '" + css + "status " + obj.status + "'></span>";
         },
         templateUser: function (obj) {
-          var users = _this5.getUsers();
+          var users = _this7.getUsers();
 
           var user = users && users.exists(obj.user_id) ? users.getItem(obj.user_id) : {};
           var name = "<span class = '" + css + "name'>" + (user.value || "") + "</span>";
           return name;
         },
         templateMenu: function () {
-          return _this5.config.readonly ? "" : "<span class='webix_icon wxi-dots " + css + "menu'></span>";
+          return _this7.config.readonly ? "" : "<span class='webix_icon wxi-dots " + css + "menu'></span>";
         },
         templateDate: function (obj) {
           var format = wDate.dateToStr("%d %M, %H:%i");
           return obj.date ? "<span class='" + css + "date'>" + format(obj.date) + "</span>" : "";
         },
         templateLinks: function (obj) {
-          var text = obj.text.replace(/(https?:\/\/[^\s]+)/g, function (match) {
+          var text$$1 = obj.text.replace(/(https?:\/\/[^\s]+)/g, function (match) {
             match = template.escape(match);
             var html = "<a target='_blank' href='" + match + "'>";
             if (match.match(/.(jpg|jpeg|png|gif)$/)) html += "<img class='webix_comments_image' src='" + match + "'/>";else html += match;
             return html + "</a>";
           });
-          return text;
+          return text$$1;
         },
         templateMentioned: function (obj) {
-          if (!_this5._mentioned[obj.id]) return obj.text;
-          var field = _this5._userList ? _this5._userList._settings.textValue || "value" : "value";
-          var order = _this5._mentioned[obj.id];
-
-          for (var i = 0; i < order.length; i++) {
-            var mention = _this5._users.getItem(order[i])[field];
-
-            obj.text = obj.text.replace(new RegExp("@" + mention, "g"), "<span class='webix_comments_mention'>@" + mention + "</span>");
-          }
-
-          return obj.text;
+          return _this7._highlightMention(obj.text);
         },
         templateText: function (obj, common) {
-          if (_this5._settings.mentions && _this5._mentioned) {
+          if (_this7._settings.mentions && _this7._settings.highlight) {
             obj = copy(obj);
             obj.text = common.templateMentioned(obj, common);
           }
@@ -35193,7 +36566,7 @@
         templateAvatar: function (obj, common) {
           var avatar = "<div class='" + css + "avatar'>";
 
-          var users = _this5.getUsers();
+          var users = _this7.getUsers();
 
           var user = users && users.exists(obj.user_id) ? users.getItem(obj.user_id) : {};
           if (user.status) avatar += common.templateStatus(user);
@@ -35209,21 +36582,21 @@
           var message$$1;
 
           if (obj.id == "$more") {
-            message$$1 = "<div class='webix_comments_more'>" + _this5._settings.moreButton(obj) + "</div>";
+            message$$1 = "<div class='webix_comments_more'>" + _this7._settings.moreButton(obj) + "</div>";
           } else {
             var avatar = common.templateAvatar(obj, common);
             var user = common.templateUser(obj, common);
             var date = common.templateDate(obj, common);
             var menu = common.templateMenu(obj, common);
-            var text = common.templateText(obj, common);
-            message$$1 = avatar + user + menu + date + text;
+            var text$$1 = common.templateText(obj, common);
+            message$$1 = avatar + user + menu + date + text$$1;
           }
 
           return message$$1;
         },
         classname: function (obj, common, marks) {
           var css = list.api.type.classname(obj, common, marks);
-          if (obj.user_id && obj.user_id == _this5._settings.currentUser || !_this5._users.count()) css += " webix_comments_current";
+          if (obj.user_id && obj.user_id == _this7._settings.currentUser || !_this7._users.count()) css += " webix_comments_current";
           return css;
         }
       };
@@ -35232,8 +36605,11 @@
         $init: function (obj) {
           if (obj.date) obj.date = i18n.parseFormatDate(obj.date);
         }
-      };
-      scheme = exports.extend(scheme, config.scheme || {}, true);
+      }; // using webix.extend() for extending schemes results in wrong calls of $init()
+
+      if (config.scheme) Object.keys(config.scheme).forEach(function (k) {
+        scheme[k] = config.scheme[k];
+      });
       var listConfig = {
         view: "list",
         navigation: false,
@@ -35241,13 +36617,13 @@
         scheme: scheme,
         onClick: {
           "webix_comments_menu": function (ev, id) {
-            if (_this5._listMenu.isVisible()) _this5._listMenu.hide();else {
-              _this5._listMenu.setContext({
-                obj: _this5,
+            if (_this7._listMenu.isVisible()) _this7._listMenu.hide();else {
+              _this7._listMenu.setContext({
+                obj: _this7,
                 id: id
               });
 
-              _this5._listMenu.show(ev.target, type.menuPosition || {
+              _this7._listMenu.show(ev.target, type.menuPosition || {
                 pos: "left",
                 y: 30,
                 x: 10
@@ -35255,21 +36631,21 @@
             }
           },
           "webix_comments_more": function () {
-            if (_this5.config.url && _this5.callEvent("onDataRequest", [])) {
-              _this5._moreCall = true;
+            if (_this7.config.url && _this7.callEvent("onDataRequest", [])) {
+              _this7._moreCall = true;
 
-              var more = _this5._list.getItem("$more").value;
+              var more = _this7._list.getItem("$more").value;
 
-              var pos$$1 = _this5._settings.mode == "chat" ? more : _this5._list.getIndexById("$more");
-              var url = proxy$5.$parse(_this5.config.url);
+              var pos$$1 = _this7._settings.mode == "chat" ? more : _this7._list.getIndexById("$more");
+              var url = proxy$5.$parse(_this7.config.url);
               var callback = {
                 error: function () {
-                  _this5._moreCall = false;
+                  _this7._moreCall = false;
                 }
               };
               if (typeof url == "string") url = url + (url.indexOf("?") < 0 ? "?" : "&") + "pos=" + pos$$1 + "&more=" + more;
 
-              _this5.load(url, callback, {
+              _this7.load(url, callback, {
                 pos: pos$$1,
                 more: more
               });
@@ -35281,7 +36657,7 @@
       return listConfig;
     },
     _initUsers: function (value) {
-      var _this6 = this;
+      var _this8 = this;
 
       if (value && value.getItem) {
         this._users = value;
@@ -35293,38 +36669,28 @@
         if (value && typeof value === "string") this._users.load(value);else this._users.parse(value || []);
       }
 
-      this._users.data.attachEvent("onStoreUpdated", function (id, obj, mode) {
-        if (_this6._settings.mentions && mode && mode !== "paint") {
-          _this6._list.data.each(function (obj) {
-            _this6._findMentioned(obj, true);
-          });
-        }
-
-        _this6._list.refresh();
+      this._users.data.attachEvent("onStoreUpdated", function () {
+        return _this8._list.refresh();
       });
     },
     _initMentions: function (value) {
-      var _this7 = this;
+      var _this9 = this;
 
-      this._mentioned = {};
+      var readonly = this.config.readonly;
+      if (!readonly) this._initUserList(value);
 
-      if (!this.config.readonly) {
-        this._initUserList(value);
+      if (this.config.highlight) {
+        if (!readonly) this._markedText = new RegExp("@((&quot;(.*?)&quot;)|([^\\s]{1,}))", "g");
+        this._markedHTML = new RegExp("@((\"(.*?)\")|([^\\s]{1,}))", "g");
       }
 
       Deferred.all([this._list.waitData, this._users.waitData]).then(function () {
-        _this7._list.data.each(function (obj) {
-          return _this7._findMentioned(obj);
-        });
-
-        _this7._list.refresh();
+        _this9._list.refresh();
       });
 
       this._list.data.attachEvent("onStoreUpdated", function (id, obj, mode) {
         if (id && (mode === "add" || mode === "update")) {
-          _this7._findMentioned(obj, true);
-
-          _this7._list.refresh(id);
+          _this9._findMentioned(obj);
         }
       });
     },
@@ -35339,67 +36705,58 @@
 
       var suggest = this._input.define("suggest", config);
 
+      this._input.setValueHere = function (value, data, details) {
+        if (value.indexOf(" ") != -1) value = "\"".concat(value, "\"");
+        return text.api.setValueHere.apply(this, [value, data, details]);
+      };
+
       this._userList = $$(suggest);
     },
-    _findMentioned: function (obj, announce) {
-      var _this8 = this;
+    _findMentioned: function (obj) {
+      var _this10 = this;
 
-      var id = obj.id;
-      var indexes = {};
-      var field = this._userList ? this._userList._settings.textValue || "value" : "value";
+      if (obj.text.indexOf("@") != -1) {
+        var field = this._userList ? this._userList._settings.textValue || "value" : "value";
+        var mentioned = {}; // text.replace used instead of matchAll, which not supported by older browsers
 
-      this._users.data.each(function (user) {
-        var value = "@" + user[field];
-        var text = obj.text;
-        var index$$1 = text.indexOf(value);
-        var cut_off = 0;
+        obj.text.replace(this._markedHTML, function (text$$1, name1, _b, name2) {
+          var name = name2 || name1;
 
-        while (index$$1 !== -1) {
-          var real_index = cut_off + index$$1;
+          var user = _this10._users.find(function (user) {
+            return user[field] == name;
+          }, true);
 
-          if (indexes[real_index]) {
-            var last_value = _this8._users.getItem(indexes[real_index])[field];
+          if (user && !mentioned[name]) {
+            _this10.callEvent("onUserMentioned", [user.id, obj.id]);
 
-            if (value.length > last_value.length + 1) indexes[real_index] = user.id;
-          } else indexes[real_index] = user.id;
+            mentioned[name] = true;
+          } // return original text to minimize extra work
 
-          cut_off += index$$1 + value.length;
-          text = text.substring(index$$1 + value.length);
-          index$$1 = text.indexOf(value);
-        }
-      });
 
-      var last = this._mentioned[id];
-      var mention = [];
-
-      for (var i in indexes) {
-        if (mention.indexOf(indexes[i]) === -1) {
-          mention.push(indexes[i]);
-          if (announce && (!last || last.indexOf(indexes[i]) === -1)) this.callEvent("onUserMentioned", [indexes[i], id]);
-        }
-      }
-
-      if (mention.length) {
-        this._mentioned[id] = mention;
-        mention.sort(function (a, b) {
-          a = _this8._users.getItem(a)[field];
-          b = _this8._users.getItem(b)[field];
-          return a.length === b.length ? 0 : a.length > b.length ? -1 : 1;
+          return text$$1;
         });
-      } else delete this._mentioned[id];
+      }
     }
   };
-  var view$16 = exports.protoUI(api$16, AtomDataLoader, layout.view);
+  var view$18 = exports.protoUI(api$18, AtomDataLoader, layout.view);
 
-  var api$17 = {
+  var api$19 = {
     name: "timeline",
     defaults: {
       scroll: "auto"
     },
-    $init: function () {
+    $init: function (config) {
       var _this = this;
 
-      this._viewobj.className += " webix_timeline";
+      var isHorizontal = config.layout === "x";
+
+      if (isHorizontal) {
+        var common = config.type;
+        this.type.type = common && common.type || "top";
+        if (isUndefined(config.scroll)) config.scroll = "x";
+      }
+
+      this._viewobj.className += isHorizontal ? " webix_timeline_horizontal" : " webix_timeline";
       this.$blockRender = true;
       this.data.provideApi(this, true);
       this.data.attachEvent("onStoreUpdated", function (id, data, type) {
@@ -35448,7 +36805,9 @@
       type: "left",
       classname: function (obj, common, index$$1) {
         var css = "webix_timeline_item";
-        if (common.type !== "alternate") css += "  webix_timeline_" + common.type;else css += " webix_timeline_" + (index$$1 % 2 ? "right" : "left");
+        if (common.type !== "alternate") css += "  webix_timeline_" + common.type;else {
+          if (this._settings.layout == "x") css += " webix_timeline_" + (index$$1 % 2 ? "bottom" : "top");else css += " webix_timeline_" + (index$$1 % 2 ? "right" : "left");
+        }
         if (common.css) css += " " + common.css;
 
         if (obj.$css) {
@@ -35470,36 +36829,116 @@
         return format(obj.date);
       },
       template: function (obj, common, index$$1) {
+        var padding = $active.dataPadding;
+        var radius = 6,
+            stroke = 2,
+            paddingTop = 2;
         var lineColor = typeof common.lineColor == "string" ? common.lineColor : common.lineColor(obj, common);
-        var color = lineColor || $active.timelineColor;
+        var commonStyle = "stroke-width:".concat(stroke, "px; stroke:").concat(lineColor || $active.timelineColor, ";");
         var scrollSize = this._settings.scroll ? env.scrollSize : 0;
-        var width = this.$width - $active.dataPadding * 2 - scrollSize;
-        var height = Math.ceil(this.type.height * 1.1);
+        var width = this.$width - padding * 2 - scrollSize;
+        var height = this.$height - padding * 2 - scrollSize;
         var type = common.type;
         var last = index$$1 + 1 == this.count();
-        var offset$$1 = 9;
-        var left = 0,
-            right = Math.floor(width * 0.35),
-            rwidth = Math.floor(width * 0.65);
-        var lwidth = right,
-            center = right;
+        var circleCenter = paddingTop + radius + stroke / 2;
+        var circleSize = radius * 2 + stroke;
+        var innerPadding = circleSize / 2 + 7;
+        var center = 0; // common properties for HTML markup, values are different for layouts
 
-        if (type == "right") {
-          left = width - right;
-          right = 0;
-          center = left;
-        } else if (type == "alternate") {
-          right = center = lwidth = rwidth = Math.floor(width * 0.5);
+        var dateStyle = "",
+            eventStyle = "",
+            svgWidth,
+            svgHeight,
+            x1,
+            y1,
+            x2,
+            y2,
+            cx,
+            cy;
+        var details = common.templateDetails(obj, common);
+        var value = common.templateValue(obj, common);
 
-          if (index$$1 % 2) {
-            left = right;
-            right = 0;
+        if (this._settings.layout == "x") {
+          center = $active.listItemHeight;
+          var dateHeight = center,
+              dateOffset = center - padding * 2,
+              eventHeight = height - center,
+              eventOffset = center + innerPadding + padding,
+              eventPos = "top";
+          var fixDetails = details ? innerPadding : 0;
+
+          if (type == "bottom") {
+            center = height - center;
+            eventHeight = center - fixDetails;
+            dateOffset = center + innerPadding + padding;
+            eventOffset = height - center + dateHeight + innerPadding + padding + circleSize / 2;
+            eventPos = "bottom";
+          } else if (type == "alternate") {
+            center = Math.floor(height * 0.5);
+            dateOffset = center - padding * 2, eventOffset = center + innerPadding + padding;
+            eventHeight = center - fixDetails;
+
+            if (index$$1 % 2) {
+              dateOffset = eventOffset;
+              eventOffset = center + dateHeight + innerPadding + padding + circleSize / 2;
+              eventPos = "bottom";
+            }
           }
+
+          dateStyle = "top:".concat(dateOffset, "px; height:").concat(dateHeight, "px;");
+          eventStyle = "".concat(eventPos, ":").concat(eventOffset, "px; height:auto; max-height:").concat(eventHeight, "px; width:inherit;");
+          svgWidth = common.width + circleSize;
+          svgHeight = center + circleSize;
+          x1 = circleCenter + radius;
+          y1 = center;
+          x2 = common.width + circleCenter - radius + padding;
+          y2 = center;
+          cx = circleCenter;
+          cy = center;
+        } else {
+          center = Math.floor(width * 0.35);
+          var left = padding,
+              rwidth = Math.floor(width * 0.65) - innerPadding;
+          var right = center + innerPadding + padding,
+              lwidth = center - innerPadding;
+
+          if (type == "right") {
+            center = width - right + innerPadding + padding;
+            left = center + innerPadding + padding;
+            right = padding;
+          } else if (type == "alternate") {
+            center = Math.floor(width * 0.5);
+            right = center + innerPadding + padding;
+            lwidth = rwidth = center - innerPadding;
+
+            if (index$$1 % 2) {
+              left = right;
+              right = padding;
+            }
+          }
+
+          dateStyle = "left:".concat(left, "px; width:").concat(lwidth, "px;");
+          eventStyle = "left:".concat(right, "px; width:").concat(rwidth, "px; height:").concat(common.height - padding, "px;");
+          svgWidth = center + circleSize;
+          svgHeight = common.height + circleSize;
+          x1 = center;
+          y1 = circleCenter + radius;
+          x2 = center;
+          y2 = common.height + circleCenter - radius;
+          cx = center;
+          cy = circleCenter;
         }
 
-        return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100%\" height=\"".concat(common.height + offset$$1, "px\">\n\t\t\t\t<foreignObject x=\"").concat(left, "px\" y=\"0\" width=\"").concat(lwidth, "px\" height=\"100%\">\n\t\t\t\t\t<div class=\"webix_timeline_date\">").concat(common.templateDate(obj, common), "</div>\n\t\t\t\t</foreignObject>\n\t\t\t\t<circle cx=\"").concat(center, "px\" cy=\"").concat(offset$$1, "\" r=\"6\" class=\"webix_timeline_node webix_timeline_point\" style=\"stroke:").concat(color, "\" />\n\t\t\t\t").concat(!last ? "<line x1=\"".concat(center, "px\" y1=\"14\" x2=\"").concat(center, "px\" y2=\"").concat(height, "\" class=\"webix_timeline_node\" style=\"stroke:").concat(color, "\" />") : "", "\n\t\t\t\t<foreignObject x=\"").concat(right, "px\" y=\"0\" width=\"").concat(rwidth, "px\" height=\"").concat(common.height - 10, "px\">\n\t\t\t\t\t<div class=\"webix_timeline_value\">").concat(common.templateValue(obj, common), "</div>\n\t\t\t\t\t<div class=\"webix_timeline_details\">").concat(common.templateDetails(obj, common), "</div>\n\t\t\t</foreignObject>\n\t\t\t</svg>");
+        return "<div style=\"".concat(dateStyle, "\" class=\"webix_timeline_date\">").concat(common.templateDate(obj, common), "</div>\n\t\t\t\t\t<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"").concat(svgWidth, "px\" height=\"").concat(svgHeight, "px\">\n\t\t\t\t\t\t").concat(!last ? "<line x1=\"".concat(x1, "px\" y1=\"").concat(y1, "\" x2=\"").concat(x2, "px\" y2=\"").concat(y2, "\" class=\"webix_timeline_node\" style=\"").concat(commonStyle, "\"/>") : "", "\n\t\t\t\t\t\t<circle cx=\"").concat(cx, "px\" cy=\"").concat(cy, "\" r=\"").concat(radius, "\" class=\"webix_timeline_node webix_timeline_point\" style=\"").concat(commonStyle, " fill:transparent;\" />\n\t\t\t\t\t</svg>\n\t\t\t\t\t<div class=\"webix_timeline_event\" style=\"").concat(eventStyle, "\">\n\t\t\t\t\t\t<div class=\"webix_timeline_value\">").concat(value, "</div>\n\t\t\t\t\t\t").concat(details ? "<div class=\"webix_timeline_details\">".concat(details, "</div>") : "", "\n\t\t\t\t\t</div>");
       },
       templateStart: function (obj, common, index$$1) {
+        // horizontal layout
+        if (this._settings.layout == "x") {
+          return "<div ".concat(
+          /*@attr*/
+          "webix_tl_id", "=\"", obj.id, "\" class=\"").concat(common.classname.call(this, obj, common, index$$1), "\" style=\"width:").concat(common.width, "px;\">");
+        }
+
         return "<div ".concat(
         /*@attr*/
         "webix_tl_id", "=\"", obj.id, "\" class=\"").concat(common.classname.call(this, obj, common, index$$1), "\" style=\"height:").concat(common.height, "px;\">");
@@ -35517,13 +36956,14 @@
     },
     $skin: function () {
       this.type.height = $active.timelineItemHeight;
+      this.type.width = $active.timelineItemHeight * 3;
     }
   };
-  var view$17 = exports.protoUI(api$17, Scrollable, RenderStack, DataLoader, MouseEvents, EventSystem, AutoTooltip, base.view);
+  var view$19 = exports.protoUI(api$19, Scrollable, RenderStack, DataLoader, MouseEvents, EventSystem, AutoTooltip, base.view);
 
   // #include ui/list.js
 
-  var api$18 = {
+  var api$1a = {
     name: "menu",
     _listClassName: "webix_menu",
     $init: function (config) {
@@ -35548,7 +36988,7 @@
           var parent = this.getTopMenu();
 
           if (!parent.callEvent("onMenuItemClick", [id, e, trg])) {
-            e.showpopup = true;
+            e.showpopup = parent._settings.id;
             return;
           }
 
@@ -35564,7 +37004,7 @@
             } //do not close popups when clicking on menu folder
 
 
-            e.showpopup = true;
+            e.showpopup = parent._settings.id;
           }
         }
       });
@@ -35807,13 +37247,13 @@
       subMenuPos: "bottom"
     }
   };
-  var view$18 = exports.protoUI(api$18, list.view);
+  var view$1a = exports.protoUI(api$1a, list.view);
   var menu = {
-    api: api$18,
-    view: view$18
+    api: api$1a,
+    view: view$1a
   };
 
-  var api$19 = {
+  var api$1b = {
     name: "submenu",
     $init: function () {
       this._body_cell = clone(this._dummy_cell_interface);
@@ -35871,13 +37311,13 @@
       subsign: true
     }
   };
-  var view$19 = exports.protoUI(api$19, menu.view, popup.view);
+  var view$1b = exports.protoUI(api$1b, menu.view, popup.view);
   var submenu = {
-    api: api$19,
-    view: view$19
+    api: api$1b,
+    view: view$1b
   };
 
-  var api$1a = {
+  var api$1c = {
     name: "sidemenu",
     defaults: {
       animate: true,
@@ -35916,7 +37356,7 @@
     show: function () {
       if (!this.callEvent("onBeforeShow", arguments)) return false;
       this._settings.hidden = false;
-      this._viewobj.style.zIndex = this._settings.zIndex || zIndex();
+      this._viewobj.style.zIndex = zIndex(this._settings.zIndex);
 
       if (this._settings.modal || this._modal) {
         this._modal_set(true);
@@ -36083,9 +37523,9 @@
       } else this._hide_callback();
     }
   };
-  var view$1a = exports.protoUI(api$1a, popup.view);
+  var view$1c = exports.protoUI(api$1c, popup.view);
 
-  var api$1b = {
+  var api$1d = {
     name: "sidebar",
     defaults: {
       type: "sideBar",
@@ -36101,7 +37541,7 @@
     $skin: function () {
       this.defaults.titleHeight = $active.sidebarTitleHeight;
     },
-    $init: function () {
+    $init: function (config) {
       this.$view.className += " webix_sidebar";
       this.$ready.push(this._initSidebar);
       this.$ready.push(this._initContextMenu);
@@ -36110,6 +37550,8 @@
         if (obj.data) obj.menu = copy(obj.data);else if (obj.item) //xml child records, can be {} or []
           obj.menu = copy(obj.item.length ? obj.item : [obj.item]);
       };
+
+      config.multiselect = false;
     },
     on_context: {},
     on_mouse_move: {},
@@ -36127,7 +37569,8 @@
         return !this.config.collapsed;
       });
       this.attachEvent("onItemClick", function (id, ev, node) {
-        if (this.getPopup() && !this.getPopup().config.hidden) ev.showpopup = true;
+        var popup = this.getPopup();
+        if (popup && !popup.config.hidden) ev.showpopup = popup.config.id;
         if (env.touch) this._showPopup(id, node);
       });
       this.attachEvent("onBeforeSelect", function (id) {
@@ -36143,8 +37586,14 @@
 
         this.getPopup()._onMasterSelect(id);
       });
+      this.attachEvent("onAfterUnSelect", function () {
+        this.clearCss("webix_sidebar_selected");
+      });
       this.attachEvent("onMouseMove", function (id, ev, node) {
         this._showPopup(id, node);
+      });
+      this.attachEvent("onMouseOut", function () {
+        if (this.config.collapsed) this.getPopup().masterId = null;
       });
       if (this.config.collapsed) this.collapse();
     },
@@ -36153,10 +37602,11 @@
         var popup = this.getPopup();
 
         if (popup) {
-          this._updateTitle(id);
+          this._updateTitle(id, popup);
 
-          this._updateList(id);
+          this._updateList(id, popup);
 
+          popup.masterId = id;
           popup.show(node, {
             x: this.config.position == "left" ? this.config.collapsedWidth : -popup.config.width,
             y: -1
@@ -36164,19 +37614,11 @@
         }
       }
     },
-    _updateTitle: function (id) {
-      var popup = this.getPopup();
+    _updateTitle: function (id, popup) {
       var title = popup.getBody().getChildViews()[0];
-      if (!title || title.masterId == id) return;
-      var selectedId = this.getSelectedId();
-      title.masterId = id;
+      if (!title || popup.masterId == id) return;
       title.parse(this.getItem(id));
-
-      if (selectedId && this.getParentId(selectedId) == id) {
-        addCss(title.$view, "webix_sidebar_selected", true);
-      } else {
-        removeCss(title.$view, "webix_sidebar_selected");
-      }
+      var selectedId = this.getSelectedId();
 
       if (selectedId == id) {
         addCss(title.$view, "webix_selected", true);
@@ -36184,22 +37626,20 @@
         removeCss(title.$view, "webix_selected");
       }
     },
-    _updateList: function (id) {
-      var popup = this.getPopup();
+    _updateList: function (id, popup) {
       var list = popup.getBody().getChildViews()[1];
-      if (!list || list.masterId == id) return;
-      if (this.exists(list.masterId) && this.getItem(list.masterId).menu) this.updateItem(list.masterId, {
+      if (!list || popup.masterId == id) return;
+      if (this.exists(popup.masterId) && this.getItem(popup.masterId).menu) this.updateItem(popup.masterId, {
         menu: list.data.serialize()
       });
       list.clearCss("webix_sidebar_selected");
-      list.masterId = id;
-      var selectedId = this.getSelectedId();
+      list.unselectAll();
       var data = copy(this.getItem(id).menu || []);
-      list.unselect();
 
       if (data.length) {
         list.show();
         list.data.importData(data);
+        var selectedId = this.getSelectedId();
         if (list.exists(selectedId)) list.select(selectedId);else if (selectedId) this._markMenu(list, selectedId);
       } else {
         list.hide();
@@ -36242,7 +37682,7 @@
               height: this.config.titleHeight + 2,
               onClick: {
                 webix_template: function () {
-                  var id = this.masterId;
+                  var id = this.getValues().id;
                   if (!master.getItem(id).$count) master.select(id);
                 }
               }
@@ -36315,10 +37755,6 @@
         popup = ui(popupConfig);
 
         popup._onMasterSelect = function (id) {
-          if (master && master.getParentId(id) == this.masterId) {
-            addCss(this.$view, "webix_sidebar_selected", true);
-          }
-
           if (master.config.collapsed && master.getItem(id).$level == 1) {
             var title = popup.getBody().getChildViews()[0];
             if (title) addCss(title.$view, "webix_selected", true);
@@ -36337,7 +37773,7 @@
       config.popupId = popup.config.id;
 
       _event(document.body, "mousemove", function (e) {
-        var trg = e.target || e.srcElement;
+        var trg = e.target;
 
         if (!popup.config.hidden && !popup.$view.contains(trg) && !this.$view.firstChild.contains(trg) && !popup.queryView({
           view: "menu"
@@ -36378,6 +37814,14 @@
 
       return value;
     },
+    select: function (id) {
+      //ignore multiple selection
+      if (id) {
+        if (isArray(id)) id = id.pop();
+        tree.api.select.call(this, id);
+      }
+    },
+    selectAll: function () {},
     collapse: function () {
       this.define("collapsed", true);
     },
@@ -36449,28 +37893,27 @@
       return "<span " + style + "></span>";
     }
   });
-  var view$1b = exports.protoUI(api$1b, tree.view);
+  var view$1d = exports.protoUI(api$1d, tree.view);
 
-  var api$1c = {
+  var api$1e = {
     name: "context"
   };
-  var view$1c = exports.protoUI(api$1c, ContextHelper, popup.view);
+  var view$1e = exports.protoUI(api$1e, ContextHelper, popup.view);
 
-  var api$1d = {
+  var api$1f = {
     name: "contextmenu",
     _hide_on_item_click: true,
     $init: function (config) {
       if (config.submenuConfig) exports.extend(config, config.submenuConfig);
     }
   };
-  var view$1d = exports.protoUI(api$1d, ContextHelper, submenu.view);
+  var view$1f = exports.protoUI(api$1f, ContextHelper, submenu.view);
 
-  var api$1e = {
+  var api$1g = {
     name: "vscroll",
     $apiOnly: true,
     defaults: {
       scroll: "x",
-      scrollStep: 40,
       scrollPos: 0,
       scrollSize: 18,
       scrollVisible: 1,
@@ -36487,6 +37930,9 @@
       });
 
       this._last_set_size = 0;
+    },
+    $skin: function () {
+      this.defaults.scrollStep = $active.rowHeight;
     },
     reset: function () {
       this.config.scrollPos = 0;
@@ -36541,6 +37987,11 @@
     getSize: function () {
       return Math.round((this._settings.scrollWidth || this._settings.scrollHeight) * this._settings.zoom);
     },
+    _fixSize: function () {
+      var pos$$1 = this.getScroll();
+      var max = Math.max(this.getSize() - this._last_set_size, 0);
+      if (pos$$1 > max) this.scrollTo(max);
+    },
     scrollTo: function (value) {
       if (value < 0) value = 0;
       var config = this._settings;
@@ -36575,7 +38026,7 @@
     activeArea: function (area, x_mode) {
       this._x_scroll_mode = x_mode;
 
-      _event(area, env.isIE8 ? "mousewheel" : "wheel", this._on_wheel, {
+      _event(area, "wheel", this._on_wheel, {
         bind: this,
         passive: false
       });
@@ -36626,7 +38077,7 @@
     _on_wheel: function (e) {
       var dir = 0;
       var step = e.deltaMode === 0 ? 30 : 1;
-      if (env.isIE8) dir = e.detail = -e.wheelDelta / 30;
+      if (e.ctrlKey) return false;
 
       if (e.deltaX && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
         //x-scroll
@@ -36640,11 +38091,11 @@
       // (used in _check_rendered_cols of DataTable)
 
 
-      if (env.isSafari) this._scroll_trg = e.target || e.srcElement;
+      if (env.isSafari) this._scroll_trg = e.target;
       if (dir) if (this.scrollTo(this.getScroll() + dir * this._settings.scrollStep)) return preventEvent(e);
     }
   };
-  var view$1e = exports.protoUI(api$1e, EventSystem, Settings);
+  var view$1g = exports.protoUI(api$1g, EventSystem, Settings);
 
   var temp$3 = {};
 
@@ -36715,6 +38166,7 @@
     },
     getFilter: function (columnId) {
       var filter = this._filter_elements[columnId];
+      if (filter && filter[2]._get_filter) return filter[2]._get_filter(filter[0]);
       if (filter && filter[2].getInputNode) return filter[2].getInputNode(filter[0]);
       return null;
     },
@@ -36738,14 +38190,14 @@
       };
       var values = [];
       this.data.each(function (obj) {
-        var test = obj ? obj[id] : "";
+        var lineId = obj ? obj[id] : ""; //special handling for 0 values
 
-        if (test !== undefined && !checks[test]) {
-          checks[test] = true;
-          var lineId = obj[id]; //special handling for 0 values
-          //convert to string to create a valid ID
+        if (lineId === 0) lineId = "0"; //convert to string to create a valid ID
 
-          if (lineId === 0) lineId = "0";
+        if (_typeof(lineId) == "object") lineId = String(lineId);
+
+        if (lineId !== undefined && !checks[lineId]) {
+          checks[lineId] = true;
           values.push({
             id: lineId,
             value: obj[value]
@@ -36800,8 +38252,9 @@
             if (_this._last_hover) _this.addRowCss(_this._last_hover, _this._settings.hover);
           }
         });
-        event$1(this.$view, "mouseout", function (e) {
-          var trg = e.target || e.srcElement; // inner html elements blinking in case of hover:true
+
+        _event(this.$view, "mouseout", function (e) {
+          var trg = e.target; // inner html elements blinking in case of hover:true
           // ie and edge call mouseout when clicking inner html element
 
           if (_this._last_hover && document.body.contains(trg)) {
@@ -36814,6 +38267,7 @@
             }
           }
         });
+
         this._hover_initialized = 1;
       }
 
@@ -37367,21 +38821,16 @@
   var Mixin$2 = {
     blockselect_setter: function (value) {
       if (value && this._block_sel_flag) {
+        if (env.touch) this.attachEvent("onLongTouch", this._bs_down);else _event(this._viewobj, env.mouse.down, this._bs_down, {
+          bind: this
+        });
+
         _event(this._viewobj, env.mouse.move, this._bs_move, {
           bind: this
         });
 
-        _event(this._viewobj, env.mouse.down, this._bs_down, {
-          bind: this
-        });
-
-        event$1(document.body, env.mouse.up, this._bs_up, {
-          bind: this
-        });
         this._block_sel_flag = this._bs_ready = this._bs_progress = false;
-        this.attachEvent("onAfterScroll", function () {
-          this._update_block_selection();
-        }); // auto scroll
+        this.attachEvent("onAfterScroll", this._update_block_selection); // auto scroll
 
         exports.extend(this, AutoScroll, true);
         this.attachEvent("onBeforeAutoScroll", function () {
@@ -37393,7 +38842,7 @@
     },
     _block_sel_flag: true,
     _childOf: function (e, tag) {
-      var src = e.target || e.srcElement;
+      var src = e.target;
 
       while (src) {
         if (src.getAttribute && src.getAttribute(
@@ -37407,16 +38856,26 @@
     },
     _bs_down: function (e) {
       // do not listen to mousedown of subview on master
-      if (this._settings.subview && this != $$(e.target || e.srcElement)) return;
+      if (this._settings.subview && this != $$(e.target)) return;
 
       if (this._childOf(e, this._body)) {
         //disable block selection when we have an active editor
         if (e.target && e.target.tagName == "INPUT" || this._rs_process) return;
         this._bs_position = offset(this._body);
-        var pos$$1 = pos(e);
+        var pos$$1 = env.touch ? e : pos(e);
         this._bs_ready = [pos$$1.x - this._bs_position.x, pos$$1.y - this._bs_position.y];
         preventEvent(e);
+
+        this._bs_up_init();
       }
+    },
+    _bs_up_init: function () {
+      var _this = this;
+
+      var handler = event$1(document.body, env.mouse.up, function (e) {
+        eventRemove(handler);
+        return _this._bs_up(e);
+      });
     },
     _bs_up: function (e) {
       if (this._block_panel) {
@@ -37430,7 +38889,7 @@
       if (this._auto_scroll_delay) this._auto_scroll_delay = window.clearTimeout(this._auto_scroll_delay);
     },
     _update_block_selection: function () {
-      if (this._bs_progress) this._bs_select(false, false);
+      if (this._bs_progress) delay(this._bs_select, this, [false, false]);
     },
     _bs_select: function (mode, theend, e) {
       var start = null;
@@ -37496,7 +38955,7 @@
             endy = Math.max(startn.top + startn.height, endn.top + endn.height);
             if (this._settings.topSplit) starty += this._getTopSplitOffset(start);
             if (this._auto_scroll_delay) this._auto_scroll_delay = window.clearTimeout(this._auto_scroll_delay);
-            if (e) this._auto_scroll_delay = delay(this._auto_scroll, this, [pos(e)], 250);
+            if (e && (!env.touch || this._settings.prerender)) this._auto_scroll_delay = delay(this._auto_scroll, this, [pos(e)], 250);
           }
 
           var style = this._block_panel.style;
@@ -37519,7 +38978,7 @@
     _bs_move: function (e) {
       if (this._bs_ready !== false) {
         if (!this._bs_progress) addCss(document.body, "webix_noselect");
-        var pos$$1 = pos(e);
+        var pos$$1 = env.touch ? env.mouse.context(e) : pos(e);
         var progress = [pos$$1.x - this._bs_position.x, pos$$1.y - this._bs_position.y]; //prevent unnecessary block selection while dbl-clicking
 
         if (Math.abs(this._bs_ready[0] - progress[0]) < 5 && Math.abs(this._bs_ready[1] - progress[1]) < 5) return;
@@ -37527,6 +38986,8 @@
         this._bs_progress = progress;
 
         this._bs_select(this.config.blockselect, false, e);
+
+        if (env.touch) preventEvent(e);
       }
     },
     _locate_cell_xy: function (x, y) {
@@ -37589,9 +39050,7 @@
 
         var splitPos = this._cellPosition(this.getIdByIndex(this._settings.topSplit - 1), cell.column);
 
-        if (splitPos.top + splitPos.height - startPos.top > 0) {
-          y = splitPos.top + splitPos.height - (startPos.top > 0 || !area ? startPos.top : 0);
-        }
+        if (splitPos.top + splitPos.height > startPos.top) y = splitPos.top + splitPos.height - (startPos.top > 0 || !area ? startPos.top : 0);
       }
 
       return y;
@@ -37626,7 +39085,7 @@
     _rs_init_flag: true,
     _rs_down: function (e) {
       // do not listen to mousedown of subview on master
-      if (this._settings.subview && this != $$(e.target || e.srcElement)) return; //if mouse was near border
+      if (this._settings.subview && this != $$(e.target)) return; //if mouse was near border
 
       if (!this._rs_ready) return;
       this._rs_process = [pos(e), this._rs_ready[2]];
@@ -37712,10 +39171,9 @@
           config = this._settings;
       if (this._rs_ready && this._rs_process) return this._rs_start(e);
       e = e || event;
-      var node = e.target || e.srcElement;
+      var node = e.target;
       var mode = false; //resize ready flag
 
-      if (node.tagName == "TD" || node.tagName == "TABLE") return;
       var element_class = node.className || "";
       var in_body = typeof element_class === "string" && element_class.indexOf("webix_cell") != -1; //ignore resize in case of drag-n-drop enabled
 
@@ -37805,11 +39263,19 @@
 
       this._sync_scroll(0, 0, "0ms");
     },
+    $hasYScroll: function () {
+      return this._dtable_height - this._dtable_offset_height > 2;
+    },
     _touchNative: {
       _scrollTo_touch: function (x, y) {
         Touch._set_matrix(this._body.childNodes[1].firstChild, -x, -y, "0ms");
 
         this._sync_scroll(-x, -y, "0ms");
+
+        this.callEvent("onAfterScroll", [{
+          e: -x,
+          f: -y
+        }]);
       },
       _getScrollState_touch: function () {
         var temp = Touch._get_matrix(this._body.childNodes[1].firstChild);
@@ -37830,8 +39296,18 @@
         this.attachEvent("onTouchEnd", function () {
           Touch._scroll_master = null;
         });
+        this.attachEvent("onAfterScroll", function (result) {
+          //onAfterScroll may be triggered by some non-touch related logic
+          if (!result) return;
+          this._scrollLeft = -result.e;
+          this._scrollTop = -result.f;
+          if (this._x_scroll) this._x_scroll._settings.scrollPos = this._scrollLeft;
+          if (this._y_scroll) this._y_scroll._settings.scrollPos = this._scrollTop;
+        });
       },
       _sync_scroll: function (x, y, t) {
+        Touch._set_matrix(this._body.childNodes[1].firstChild, x, y, t);
+
         if (this._settings.leftSplit) Touch._set_matrix(this._body.childNodes[0].firstChild, 0, y, t);
         if (this._settings.rightSplit) Touch._set_matrix(this._body.childNodes[2].firstChild, 0, y, t);
         if (this._settings.header) Touch._set_matrix(this._header.childNodes[1].firstChild, x, 0, t);
@@ -37868,6 +39344,10 @@
           t._scroll_stat.hidden = this._x_scroll._settings.scrollVisible || this._y_scroll._settings.scrollVisible;
           t._scroll_stat.dy = this._dtable_height;
           t._scroll_master = this;
+        });
+        this.attachEvent("onAfterRender", function () {
+          if (this._x_scroll && this._settings.scrollX) this._x_scroll._fixSize();
+          if (this._y_scroll && this._settings.scrollY) this._y_scroll._fixSize();
         });
         this.attachEvent("onAfterScroll", function (result) {
           //onAfterScroll may be triggered by some non-touch related logic
@@ -39005,13 +40485,26 @@
   };
 
   var Mixin$9 = {
-    $init: function () {
+    $init: function (config) {
       this.attachEvent("onAfterScroll", this._set_focusable_item);
       this.attachEvent("onFocus", function () {
         addCss(this.$view, "webix_dtable_focused");
       });
       this.attachEvent("onBlur", function () {
         removeCss(this.$view, "webix_dtable_focused");
+      }); //open selected node in tree-like tables
+
+      if (config.select != "column" && (this.open || this._subViewStorage)) this.attachEvent("onEnter", function () {
+        var sel = this.getSelectedId(true);
+
+        if (sel.length == 1 && !(this.getEditor && this.getEditor())) {
+          var node = this.getItemNode(sel[0]);
+          sel = sel[0].row;
+
+          if (this.config.select == "row" || node.querySelector(".webix_tree_open") || node.querySelector(".webix_tree_close")) {
+            if (this.isBranchOpen(sel)) this.close(sel);else this.open(sel);
+          }
+        }
       });
     },
     _set_focusable_item: function () {
@@ -39264,17 +40757,14 @@
         var ind = this.getColumnIndex(column_id);
         var hind = this._settings.leftSplit > ind ? 0 : this._rightSplit <= ind ? 2 : 1;
         row_index = row_index || 0;
-        var rows = group.childNodes[hind].getElementsByTagName("TR");
-
-        if (rows.length) {
-          var nodes = rows[row_index + 1].childNodes;
-
-          for (var i = 0; i < nodes.length; i++) {
-            if (nodes[i].getAttribute(
-            /*@attr*/
-            "column") == ind) return nodes[i].firstChild;
-          }
-        }
+        var groupNode = group.childNodes[hind];
+        var row =
+        /*@attr*/
+        "column";
+        var column =
+        /*@attr*/
+        "row";
+        return groupNode.querySelector("div[".concat(row, "=\"").concat(ind, "\"][").concat(column, "=\"").concat(row_index, "\"]"));
       }
 
       return null;
@@ -39318,7 +40808,7 @@
       }
     },
     _isDraggable: function (e) {
-      var nodeName = (e.target || e.srcElement).nodeName;
+      var nodeName = e.target.nodeName;
       return nodeName != "INPUT" && nodeName != "TEXTAREA";
     },
     dragColumn_setter: function (value) {
@@ -39347,7 +40837,7 @@
             var context = DragControl.getContext();
             var box = offset(this.$view);
             node.style.display = "none";
-            var html = document.elementFromPoint(pos$$1.x, box.y + 1);
+            var html = document.elementFromPoint(pos$$1.x, box.y + this._settings.headerRowHeight / 2);
             var id = html ? this.locate(html) : null;
             var start = DragControl.getContext().start.column;
 
@@ -39446,7 +40936,7 @@
             var context = DragControl.getContext(); //ignore normal dnd , and dnd from other components
 
             if (context.custom != "column_dnd" || context.from != control) return false;
-            var target = e.target || e.srcElement;
+            var target = e.target;
 
             while ((target.className || "").indexOf("webix_hcell") == -1) {
               target = target.parentNode;
@@ -39616,13 +41106,12 @@
     _getTableArray: function (options, base, start) {
       var columns = this.config.columns;
       var sel = this.getSelectedId(true);
-
-      var maxWidth = this._getPageWidth(options);
-
+      var maxWidth = options.fit == "page" ? Infinity : this._getPageWidth(options);
       var rightRestriction = 0;
       var bottomRestriction = 0;
       var tableArray = [];
       var newTableStart = 0;
+      var widths = [];
       start = start || 0 + options.xCorrection;
       base = base || [];
       this.eachRow(bind(function (row) {
@@ -39638,6 +41127,7 @@
 
           if (columns[c]) {
             width += columns[c].width;
+            if (rowIndex === 0) widths.push(columns[c].width);
 
             if (width > maxWidth && c > start) {
               // 'c>start' ensures that a single long column will have to fit the page
@@ -39679,7 +41169,7 @@
                   } : null
                 });
 
-                if (cellValue) {
+                if (cellValue || cellValue === 0) {
                   rightRestriction = Math.max(colIndex + 1, rightRestriction);
                   bottomRestriction = Math.max(rowIndex + 1, bottomRestriction);
                 }
@@ -39722,8 +41212,26 @@
         //keep this order as logic relies on the first data row
         if (options.footer) base = this._getTableHeader(base, columns, "footer");
         if (options.header) base = this._getTableHeader(base, columns, "header");
+        if (options.fit == "page") this._correctWidth(base, widths, rightRestriction, options);
       }
       return base;
+    },
+    //a single grid tries to fit to page size - set column width to auto
+    _correctWidth: function (base, widths, rightRestriction, options) {
+      if (rightRestriction && options.trim) widths.length = rightRestriction;
+      var rwidth = 0;
+
+      for (var i = 0; i < widths.length; i++) {
+        rwidth += widths[i];
+      }
+
+      if (rwidth > this._getPageWidth(options)) {
+        base[0].forEach(function (item) {
+          for (var _i = 0; _i < item.length; _i++) {
+            if (item[_i] && item[_i].style && item[_i].style.width) item[_i].style.width = "auto";
+          }
+        });
+      }
     },
     _getTableHTML: function (tableData, options) {
       var container = create("div");
@@ -39774,26 +41282,28 @@
         exports.extend(options, {
           filterHTML: true
         });
-      if (options.export_mode !== "excel" || options.dataOnly || !options.styles) return this;else {
+      var mode = options.export_mode;
+      if (mode != "pdf" && mode != "excel" || options.dataOnly || !options.styles) return this;else {
         //excel export with styles
         options.dataOnly = true;
         options.heights = isUndefined(options.heights) ? "all" : options.heights;
-        var data = toExcel(this, options);
+        var data = mode == "pdf" ? toPDF(this, options) : toExcel(this, options);
         data[0].styles = this._getExportStyles(options);
         delete options.dataOnly;
         return data;
       }
     },
     _getExportStyles: function (options) {
+      var type = options.export_mode;
       var columns = this.config.columns,
           styles = [];
       this._style_hash = this._style_hash || {};
-      if (options.docHeader) styles = [{
+      if (options.docHeader && type == "excel") styles = [{
         0: this._getExportDocStyle(options.docHeader.css)
       }, {
         0: {}
       }];
-      if (options.header !== false) styles = this._getExportHStyles(options, "header", styles);
+      if (options.header !== false) styles = this._getExportHStyles(options, "header", styles, type);
       this.data.each(function (obj) {
         var row = {};
 
@@ -39801,8 +41311,6 @@
           var cellCss = this.getCss(obj.id, columns[i].id);
           var columnCss = columns[i].node.className;
           var spanCss = "";
-          var evenCss = this.getIndexById(obj.id) % 2 ? "even" : "odd"; //for skins like metro, web, air
-
           var span = null;
           var node = null;
 
@@ -39836,20 +41344,20 @@
             cnode.appendChild(node);
           }
 
-          row[i] = this._getExportCellStyle(node, [cellCss, columnCss, spanCss, evenCss].join(":"));
+          row[i] = this._getExportCellStyle(node, [cellCss, columnCss, spanCss].join(":"), type);
         }
 
         styles[styles.length] = row;
       }, this);
-      if (options.footer !== false && this.config.footer) styles = this._getExportHStyles(options, "footer", styles);
-      if (options.docFooter) styles = styles.concat([{
+      if (options.footer !== false && this.config.footer) styles = this._getExportHStyles(options, "footer", styles, type);
+      if (options.docFooter && type == "excel") styles = styles.concat([{
         0: {}
       }, {
         0: this._getExportDocStyle(options.docFooter.css)
       }]);
       return styles;
     },
-    _getExportHStyles: function (options, group, styles) {
+    _getExportHStyles: function (options, group, styles, type) {
       var columns = this.config.columns,
           hs = []; //spans
 
@@ -39865,8 +41373,8 @@
             var node = group == "header" ? this.getHeaderNode(cid, h) : this.getFooterNode(cid, h);
 
             if (node) {
-              var name = [node.parentNode.className, header.css || "", "webix_hcell", group];
-              hrow[i] = this._getExportCellStyle(node, name.join(":"));
+              var name = [node.className, header.css || "", group];
+              hrow[i] = this._getExportCellStyle(node, name.join(":"), type);
               if (header.colspan || header.rowspan) hs.push([h, i, {
                 colspan: header.colspan - 1 || 0,
                 rowspan: header.rowspan - 1 || 0
@@ -39887,73 +41395,26 @@
 
       return styles;
     },
-    _getExportCellStyle: function (node, name) {
+    _getBorderColor: function (styles, defaultColor, type) {
+      return styles["border-".concat(type, "-width")] == "0px" ? null : color.rgbToHex(styles["border-".concat(type, "-color")]) || defaultColor;
+    },
+    _getExportCellStyle: function (node, name, type) {
       if (this._style_hash[name]) return this._style_hash[name];else {
-        var base = this._getRules(node);
+        var cellStyle = this._getRules(node);
 
-        var rules = {
-          font: {},
-          alignment: {},
-          border: {}
-        }; //font
-
-        rules.font.name = base["font-family"].replace(/,.*$/, ""); // cut off fallback font;
-
-        rules.font.sz = base["font-size"].replace("px", "") * 0.75; //px to pt conversion
-
-        rules.font.color = {
-          rgb: color.rgbToHex(base["color"])
+        var bg = color.rgbToHex(cellStyle["background-color"]) || "FFFFFF";
+        var common = {
+          backgroundColor: bg,
+          fontSize: cellStyle["font-size"].replace("px", "") * 0.75,
+          //px to pt conversion
+          color: color.rgbToHex(cellStyle["color"]),
+          textAlign: cellStyle["text-align"],
+          borderRightColor: this._getBorderColor(cellStyle, bg, "right"),
+          borderLeftColor: this._getBorderColor(cellStyle, bg, "left"),
+          borderBottomColor: this._getBorderColor(cellStyle, bg, "bottom"),
+          borderTopColor: this._getBorderColor(cellStyle, bg, "top")
         };
-        if (base["font-weight"] !== "normal" && base["font-weight"] != 400) rules.font.bold = true;
-        if (base["text-decoration-line"] === "underline") rules.font.underline = true;
-        if (base["font-style"] === "italic") rules.font.italic = true;
-        if (base["text-decoration-line"] === "line-through") rules.font.strike = true; //alignment
-
-        rules.alignment.horizontal = base["text-align"];
-        rules.alignment.vertical = base["height"] == base["line-height"] ? "center" : "top";
-        if (base["white-space"] == "normal") rules.alignment.wrapText = true; //rotated header
-
-        if (node.firstChild && node.firstChild.className && node.firstChild.className.indexOf("webix_rotate") !== -1) rules.alignment.textRotation = 90; //background
-
-        var bg = color.rgbToHex(base["background-color"]) || "FFFFFF";
-        rules.fill = {
-          fgColor: {
-            rgb: bg
-          }
-        };
-        if (base["background-image"].indexOf("gradient") !== -1) //air skins use gradient for header
-          rules.fill = {
-            fgColor: {
-              rgb: color.rgbToHex(base["background-image"].substring(base["background-image"].lastIndexOf("(")))
-            }
-          }; //borders
-
-        if (node.parentNode && node.parentNode.nodeName == "TD") //borders for header are set for parent td, so we change base rules here
-          base = this._getRules(node.parentNode);
-        if (base["border-right-width"] !== "0px") rules.border.right = {
-          style: "thin",
-          color: {
-            rgb: color.rgbToHex(base["border-right-color"]) || bg
-          }
-        };
-        if (base["border-bottom-width"] !== "0px") rules.border.bottom = {
-          style: "thin",
-          color: {
-            rgb: color.rgbToHex(base["border-bottom-color"]) || bg
-          }
-        };
-        if (base["border-left-width"] !== "0px") rules.border.left = {
-          style: "thin",
-          color: {
-            rgb: color.rgbToHex(base["border-left-color"]) || bg
-          }
-        };
-        if (base["border-top-width"] !== "0px") rules.border.top = {
-          style: "thin",
-          color: {
-            rgb: color.rgbToHex(base["border-top-color"]) || bg
-          }
-        };
+        var rules = type == "pdf" ? common : this._getExcelCellRules(cellStyle, node, common);
         this._style_hash[name] = rules;
         return rules;
       }
@@ -39981,6 +41442,62 @@
       remove(node);
       return style;
     },
+    _getExcelCellRules: function (cellStyle, node, common) {
+      var rules = {
+        font: {},
+        alignment: {},
+        border: {}
+      }; //font
+
+      rules.font.name = cellStyle["font-family"].replace(/,.*$/, ""); // cut off fallback font;
+
+      rules.font.sz = common.fontSize;
+      rules.font.color = {
+        rgb: common.color
+      };
+      if (cellStyle["font-weight"] !== "normal" && cellStyle["font-weight"] != 400) rules.font.bold = true;
+      if (cellStyle["text-decoration-line"] === "underline") rules.font.underline = true;
+      if (cellStyle["font-style"] === "italic") rules.font.italic = true;
+      if (cellStyle["text-decoration-line"] === "line-through") rules.font.strike = true; //alignment
+
+      rules.alignment.horizontal = common.textAlign;
+      rules.alignment.vertical = cellStyle["height"] == cellStyle["line-height"] ? "center" : "top";
+      if (cellStyle["white-space"] == "normal") rules.alignment.wrapText = true; //rotated header
+
+      if (node.firstChild && node.firstChild.className && node.firstChild.className.indexOf("webix_rotate") !== -1) rules.alignment.textRotation = 90; //background
+
+      rules.fill = {
+        fgColor: {
+          rgb: common.backgroundColor
+        }
+      }; //borders
+
+      if (common.borderRightColor) rules.border.right = {
+        style: "thin",
+        color: {
+          rgb: common.borderRightColor
+        }
+      };
+      if (common.borderBottomColor) rules.border.bottom = {
+        style: "thin",
+        color: {
+          rgb: common.borderBottomColor
+        }
+      };
+      if (common.borderLeftColor) rules.border.left = {
+        style: "thin",
+        color: {
+          rgb: common.borderLeftColor
+        }
+      };
+      if (common.borderTopColor) rules.border.top = {
+        style: "thin",
+        color: {
+          rgb: common.borderTopColor
+        }
+      };
+      return rules;
+    },
     _getRules: function (node) {
       var style = {};
       if (window.getComputedStyle) style = window.getComputedStyle(node);else style = node.currentStyle;
@@ -39994,13 +41511,14 @@
 
   var temp$7 = {};
 
-  var api$1f = {
+  var api$1h = {
     name: "datatable",
     defaults: {
       leftSplit: 0,
       rightSplit: 0,
       topSplit: 0,
       columnWidth: 100,
+      sort: true,
       prerender: false,
       autoheight: false,
       autowidth: false,
@@ -40019,6 +41537,9 @@
       this.defaults.minColumnWidth = $active.dataPadding * 2 + $active.borderWidth;
     },
     on_click: {
+      webix_excel_filter: function () {
+        return false;
+      },
       webix_richfilter: function () {
         return false;
       },
@@ -40026,7 +41547,7 @@
         id = this.locate(e);
         var item = this.getItem(id.row);
         var col = this.getColumnConfig(id.column);
-        var trg = e.target || e.srcElement; //read actual value from HTML tag when possible
+        var trg = e.target; //read actual value from HTML tag when possible
         //as it can be affected by dbl-clicks
 
         var check = trg.type == "checkbox" ? trg.checked : item[id.column] != col.checkValue;
@@ -40059,10 +41580,10 @@
     on_context: {},
     $init: function (config) {
       this.on_click = exports.extend({}, this.on_click);
-      var html = "<div class='webix_ss_header'><div class='webix_hs_left'></div><div class='webix_hs_center'></div><div class='webix_hs_right'></div></div><div class='webix_ss_body'><div class='webix_ss_left'><div class='webix_ss_center_scroll'></div></div>";
+      var html = "<div class='webix_ss_header' section='header'><div class='webix_hs_left'></div><div class='webix_hs_center'></div><div class='webix_hs_right'></div></div><div class='webix_ss_body'><div class='webix_ss_left'><div class='webix_ss_center_scroll'></div></div>";
       html += "<div class='webix_ss_center'><div class='webix_ss_center_scroll' role='rowgroup'></div></div>";
       html += "<div class='webix_ss_right'><div class='webix_ss_center_scroll'></div></div></div>";
-      html += "<div class='webix_ss_hscroll' role='scrollbar' aria-orientation='horizontal'></div><div class='webix_ss_footer'><div class='webix_hs_left'></div><div class='webix_hs_center'></div><div class='webix_hs_right'></div></div><div class='webix_ss_vscroll_header'></div><div class='webix_ss_vscroll' role='scrollbar' aria-orientation='vertical'></div><div class='webix_ss_vscroll_footer'></div>";
+      html += "<div class='webix_ss_hscroll' role='scrollbar' aria-orientation='horizontal'></div><div class='webix_ss_footer' section='footer'><div class='webix_hs_left'></div><div class='webix_hs_center'></div><div class='webix_hs_right'></div></div><div class='webix_ss_vscroll_header'></div><div class='webix_ss_vscroll' role='scrollbar' aria-orientation='vertical'></div><div class='webix_ss_vscroll_footer'></div>";
       this._contentobj.innerHTML = html;
       this._top_id = this._contentobj.id = this.name + uid();
       this._contentobj.className += " webix_dtable";
@@ -40084,6 +41605,8 @@
       this._rows_cache = [];
       this._active_headers = {};
       this._filter_elements = {};
+      this._sort_signs = {};
+      this._sort_signs_order = [];
       this._header_height = this._footer_height = 0; //component can create new view
 
       this._destroy_with_me = [];
@@ -40110,8 +41633,9 @@
     },
     _render_initial: function () {
       this._scrollSizeX = this._scrollSizeY = env.scrollSize;
+      var hheight = this._settings.headerRowHeight + 1;
       addStyle("#" + this._top_id + " .webix_cell { height:" + this._settings.rowHeight + "px; line-height:" + (this._settings.rowLineHeight || this._settings.rowHeight) + "px;" + (this._settings.fixedRowHeight ? "" : "white-space:normal;") + " }");
-      addStyle("#" + this._top_id + " .webix_hcell { height:" + this._settings.headerRowHeight + "px; line-height:" + this._settings.headerRowHeight + "px;}");
+      addStyle("#" + this._top_id + " .webix_hcell { height:" + hheight + "px; line-height:" + hheight + "px;}");
 
       this._render_initial = function () {};
     },
@@ -40145,12 +41669,7 @@
     },
     render: function (id, data, mode) {
       //pure data saving call
-      if (mode == "save" || this._renderDelay) return; //during dnd we must not repaint anything in mobile webkit
-
-      if (mode == "move") {
-        var context = DragControl.getContext();
-        if (context && context.fragile) return;
-      }
+      if (mode == "save" || this._renderDelay) return;
 
       if (!this._columns.length) {
         var cols = this._settings.columns;
@@ -40198,14 +41717,14 @@
 
         if (!this._dtable_fully_ready) this._apply_headers();
 
-        if (this._content_width) {
-          if (fast_mode && (mode == "paint" || mode == "update") && id) this._repaint_single_row(id);else this._check_rendered_cols(true, true);
-        }
-
         if (!id || mode != "update") {
           this._dtable_height = this._get_total_height();
 
           this._set_split_sizes_y();
+        }
+
+        if (this._content_width) {
+          if (fast_mode && (mode == "paint" || mode == "update") && id) this._repaint_single_row(id);else this._check_rendered_cols(true, true);
         } //don't depend on hidden rows/rolumns
 
 
@@ -40235,6 +41754,8 @@
     },
     //xml has different configuration structure, fixing
     _config_table_from_file: function (config) {
+      this._create_scheme_init();
+
       if (config.columns && this._dtable_fully_ready) this.refreshColumns(null, true);
     },
     _define_structure: function () {
@@ -40247,7 +41768,7 @@
           this._columns_pull[col.id] = col;
           var format = col.cssFormat;
           if (format) col.cssFormat = toFunctor(format, this.$scope);
-          col.width = col.width || this._settings.columnWidth;
+          col.width = this._correctColumnWidth(col.width || this._settings.columnWidth, col);
           if (typeof col.format == "string") col.format = i18n[col.format] || window[col.format];
 
           if (col.numberFormat) {
@@ -40391,7 +41912,11 @@
 
       this._size_header_footer_fix();
 
-      if (this._last_sorted) this.markSorting(this._last_sorted, this._last_order);
+      for (var i = 0; i < this._sort_signs_order.length; i++) {
+        var col_id = this._sort_signs_order[i];
+
+        this._render_single_mark(col_id, this._sort_signs[col_id]);
+      }
     },
     _getHeaderHeight: function (header, column, ind) {
       var width = 0;
@@ -40405,7 +41930,9 @@
       return (header.rotate ? size.width : size.height) + 1;
     },
     _normalize_headers: function (collection, heights) {
-      var rows = 0;
+      var rows = 0; // clear array of previous values
+
+      heights.length = 0;
 
       for (var i = 0; i < this._columns.length; i++) {
         var data = this._columns[i][collection];
@@ -40422,8 +41949,9 @@
           if (_typeof(data[j]) != "object") data[j] = {
             text: data[j]
           };
-          if (data[j] && data[j].height) heights[j] = data[j].height;
-          if (data[j] && data[j].autoheight) heights[j] = this._getHeaderHeight(data[j], this._columns[i], i);
+          if (data[j] && data[j].height) heights[j] = Math.max(heights[j] || 0, data[j].height);
+          if (data[j] && data[j].autoheight) heights[j] = Math.max(heights[j] || 0, this._getHeaderHeight(data[j], this._columns[i], i));
+          if (data[j] && data[j].css && _typeof(data[j].css) === "object") data[j].css = createCss(data[j].css);
         }
 
         rows = Math.max(rows, data.length);
@@ -40468,13 +41996,10 @@
       return rows;
     },
     _find_header_content: function (sec, id) {
-      var alltd = sec.getElementsByTagName("TD");
-
-      for (var i = 0; i < alltd.length; i++) {
-        if (alltd[i].getAttribute(
-        /*@attr*/
-        "active_id") == id) return alltd[i];
-      }
+      var attr =
+      /*@attr*/
+      "active_id";
+      return sec.querySelector("DIV[".concat(attr, "=\"").concat(id, "\"]"));
     },
     getHeaderContent: function (id) {
       var obj = this._find_header_content(this._header, id);
@@ -40497,8 +42022,89 @@
         return _base;
       }
     },
+    _render_subheader: function (start, end, width, name, heights) {
+      if (start == end) return "";
+      var html = "";
+      var spans = "";
+      var count = this._columns[0][name].length;
+      var left = 0;
+
+      for (var i = start; i < end; i++) {
+        var _width = this._columns[i].width;
+        var top = 0;
+        var abs = i == start ? "position:static;" : "position:absolute; top:".concat(top, "px; left:").concat(left, "px;");
+        html += "<div class=\"webix_hcolumn\" style=\"".concat(abs, "width:").concat(_width, "px;overflow:hidden;\">");
+
+        for (var j = 0; j < count; j++) {
+          var isSpan = false;
+          var header = this._columns[i][name][j];
+          var cell_height = heights[j];
+
+          if (!header) {
+            html += "<div class='webix_hcell' style='border-bottom-color:transparent;border-right-color:transparent;height:".concat(cell_height + 1, "px;'></div>");
+            top += cell_height + 1;
+            continue;
+          }
+
+          if (header.content) {
+            header.contentId = header.contentId || uid();
+            header.columnId = this._columns[i].id;
+            header.format = this._columns[i].format;
+            assert(datafilter, "Filtering extension was not included");
+            assert(datafilter[header.content], "Unknown content type: " + header.content);
+            header.text = datafilter[header.content].render(this, header);
+            this._active_headers[header.contentId] = header;
+            this._has_active_headers = true;
+          }
+
+          var cell = "<div " +
+          /*@attr*/
+          "row" + "='" + j + "'" +
+          /*@attr*/
+          "column" + "='" + (header.colspan ? header.colspan - 1 + i : i) + "'";
+          var hcss = "webix_hcell";
+          if (header.css) hcss += " " + header.css;
+          if (this._columns[i].$selected) hcss += " webix_sel_hcell";
+          if (i == start) hcss += " webix_first";
+          var column_pos = i + (header.colspan ? header.colspan - 1 : 0);
+          if (column_pos >= end - 1) hcss += " webix_last";
+          if (header.rowspan && j + header.rowspan === count || j === count - 1) hcss += " webix_last_row";
+          var sheight = "";
+          if (header.contentId) cell += " " +
+          /*@attr*/
+          "active_id" + "='" + header.contentId + "'";
+          var cheight = cell_height;
+
+          if (header.colspan || header.rowspan) {
+            var cwidth = this._summ_right(this._columns, i, header.colspan) || _width;
+
+            cheight = this._summ_next(heights, j, header.rowspan);
+            if (cheight <= 0) cheight = cell_height;
+            hcss += " webix_span";
+            sheight = " colspan='".concat(header.colspan || 1, "' style='position:absolute; top:").concat(top, "px; left:").concat(left, "px; line-height:").concat(cheight + 1, "px; width:").concat(cwidth, "px; height:").concat(cheight + 1, "px;'");
+            html += "<div class='webix_hcell' style='border-bottom-color:transparent;border-right-color:transparent;height:".concat(cell_height + 1, "px;'></div>");
+            isSpan = true;
+          } else {
+            if (cell_height != this._settings.headerRowHeight) sheight = " style='line-height:".concat(cell_height + 1, "px; height:").concat(cell_height + 1, "px;'");
+          }
+
+          if (hcss) cell += " class=\"" + hcss + "\"";
+          top += cell_height + 1;
+          cell += " " + sheight + ">";
+          var text = header.text === "" ? "&nbsp;" : header.text;
+          if (header.rotate) text = "<div class='webix_rotate' style='width:" + (cheight - 10) + "px; transform-origin:center " + (cheight - 15) / 2 + "px;-webkit-transform-origin:center " + (cheight - 15) / 2 + "px;'>" + text + "</div>";
+          cell += text + "</div>";
+          if (isSpan) spans += cell;else html += cell;
+        }
+
+        left += _width;
+        html += "</div>";
+      }
+
+      return html + spans;
+    },
     _summ_next: function (heights, start, i) {
-      var summ = i ? -1 : 0;
+      var summ = -1;
       i += start;
 
       for (start; start < i; start++) {
@@ -40507,85 +42113,20 @@
 
       return summ;
     },
-    _render_subheader: function (start, end, width, name, heights) {
-      if (start == end) return "";
-      var html = "<table role='presentation' style='width:" + width + "px' cellspacing='0' cellpadding='0'>";
-      html += "<tr class='webix_size_row'>";
+    _summ_right: function (columns, start, i) {
+      var summ = 0;
+      i += start;
 
-      for (var i = start; i < end; i++) {
-        html += "<td style='width:" + this._columns[i].width + "px;'></td>";
+      for (start; start < i; start++) {
+        summ += columns[start].width;
       }
 
-      html += "</tr>";
-      var count = this._columns[0][name].length;
-
-      for (var j = 0; j < count; j++) {
-        html += "<tr " +
-        /*@attr*/
-        "section" + "='" + name + "' role='row'>";
-
-        for (var _i5 = start; _i5 < end; _i5++) {
-          var header = this._columns[_i5][name][j];
-          if (header === null) continue;
-
-          if (header.content) {
-            header.contentId = header.contentId || uid();
-            header.columnId = this._columns[_i5].id;
-            header.format = this._columns[_i5].format;
-            assert(datafilter, "Filtering extension was not included");
-            assert(datafilter[header.content], "Unknown content type: " + header.content);
-            header.text = datafilter[header.content].render(this, header);
-            this._active_headers[header.contentId] = header;
-            this._has_active_headers = true;
-          }
-
-          html += "<td  role='presentation' " +
-          /*@attr*/
-          "column" + "='" + (header.colspan ? header.colspan - 1 + _i5 : _i5) + "'";
-          var hcss = "";
-          if (_i5 == start) hcss += "webix_first";
-          var column_pos = _i5 + (header.colspan ? header.colspan - 1 : 0);
-          if (column_pos >= end - 1) hcss += " webix_last";
-          if (header.rowspan && j + header.rowspan === count || j === count - 1) hcss += " webix_last_row";
-          if (hcss) html += " class=\"" + hcss + "\"";
-          var cell_height = heights[j];
-          var sheight = "";
-          if (header.contentId) html += " " +
-          /*@attr*/
-          "active_id" + "='" + header.contentId + "'";
-          if (header.colspan) html += " colspan='" + header.colspan + "'";
-
-          if (header.rowspan) {
-            html += " rowspan='" + header.rowspan + "'";
-            cell_height = this._summ_next(this._headers, j, header.rowspan);
-          }
-
-          if (cell_height != this._settings.headerRowHeight) sheight = " style='line-height:" + cell_height + "px; height:" + cell_height + "px;'";
-          var css = "webix_hcell";
-          var header_css = header.css;
-
-          if (header_css) {
-            if (_typeof(header_css) == "object") header.css = header_css = createCss(header_css);
-            css += " " + header_css;
-          }
-
-          if (this._columns[_i5].$selected) css += " webix_sel_hcell";
-          html += "><div role='columnheader' class='" + css + "'" + sheight + ">";
-          var text = header.text === "" ? "&nbsp;" : header.text;
-          if (header.rotate) text = "<div class='webix_rotate' style='width:" + (cell_height - 10) + "px; transform-origin:center " + (cell_height - 15) / 2 + "px;-webkit-transform-origin:center " + (cell_height - 15) / 2 + "px;'>" + text + "</div>";
-          html += text + "</div></td>";
-        }
-
-        html += "</tr>";
-      }
-
-      html += "</tr></table>";
-      return html;
+      return summ;
     },
     showItemByIndex: function (row_ind, column_ind) {
       var pager = this._settings.pager;
 
-      if (pager) {
+      if (pager && row_ind >= this._settings.topSplit) {
         var target = Math.floor(row_ind / pager.size);
         if (target != pager.page) $$(pager.id).select(target);
       } //parameter will be set to -1, to mark that scroll need not to be adjusted
@@ -40593,7 +42134,7 @@
 
       var scroll = this.getScrollState();
 
-      if (row_ind != -1) {
+      if (row_ind >= this._settings.topSplit || this._settings.prerender && row_ind != -1) {
         var state = this._get_y_range();
 
         if (row_ind < state[0] + 1 || row_ind >= state[1] - 1) {
@@ -40606,7 +42147,7 @@
 
           if (row_ind < state[0] + 1) {
             //scroll top - show row at top of screen
-            summ = Math.max(0, summ) - this._top_split_height;
+            summ = Math.max(0, summ) - (this._top_split_height || 0);
           } else if (summ + itemHeight > dataHeight) {
             //scroll bottom - show row at bottom of screen
             summ += itemHeight - dataHeight; //because of row rounding we need to scroll some extra
@@ -40678,6 +42219,7 @@
       if (x !== null) this._x_scroll.scrollTo(x);
       if (y !== null) this._y_scroll.scrollTo(y);
     },
+    _touch_scroll: "touch",
     getScrollState: function () {
       if (this._getScrollState_touch) return this._getScrollState_touch();
       var diff = this._render_scroll_shift ? 0 : this._render_scroll_diff || 0;
@@ -40699,8 +42241,9 @@
     },
     _scroll_with_header: function () {
       var active = this.getScrollState().x;
-      var header = this._header.childNodes[1].scrollLeft;
-      if (header != active) this.scrollTo(header, null);
+      var header = this._header.childNodes[1].scrollLeft; // on mobile devices scrollLeft can be a non-round value
+
+      if (Math.ceil(header) != Math.ceil(active)) this.scrollTo(header, null);
     },
     _refresh_tracking_header_content: function () {
       this.refreshHeaderContent(true, true);
@@ -40727,25 +42270,28 @@
     },
     _refreshHeaderContent: function (sec, cellTrackOnly, getOnly, byId) {
       if (this._has_active_headers && sec) {
-        var alltd = sec.getElementsByTagName("TD");
+        var tag = "DIV";
+        var attr =
+        /*@attr*/
+        "active_id";
+        var cells = sec.querySelectorAll("".concat(tag, "[").concat(attr, "]"));
 
-        for (var i = 0; i < alltd.length; i++) {
-          if (alltd[i].getAttribute(
+        for (var i = 0; i < cells.length; i++) {
+          var activeId = cells[i].getAttribute(
           /*@attr*/
-          "active_id")) {
-            var obj = this._active_headers[alltd[i].getAttribute(
-            /*@attr*/
-            "active_id")];
+          "active_id");
 
+          if (activeId) {
+            var obj = this._active_headers[activeId];
             if (byId && byId != obj.columnId) continue;
             var content = datafilter[obj.content];
 
             if (getOnly) {
               if (content.getValue) {
-                obj.value = content.getValue(alltd[i]);
+                obj.value = content.getValue(cells[i]);
               }
             } else if (!cellTrackOnly || content.trackCells) {
-              content.refresh(this, alltd[i], obj);
+              content.refresh(this, cells[i], obj);
             }
           }
         }
@@ -40871,8 +42417,8 @@
       return this.row;
     },
     locate: function (node, idOnly) {
-      if (this._settings.subview && this != $$(node)) return null;
-      node = node.target || node.srcElement || node;
+      if (this != $$(node)) return null;
+      node = node.target || node;
 
       while (node && node.getAttribute) {
         if (node === this.$view) break;
@@ -40947,6 +42493,8 @@
 
       this._render_header_and_footer();
 
+      this._set_split_sizes_y();
+
       if (!silent) this._check_rendered_cols(false, false);
     },
     setColumnWidth: function (col, width, skip_update) {
@@ -40955,8 +42503,7 @@
     _setColumnWidth: function (col, width, skip_update, by_user) {
       if (isNaN(width) || col < 0) return;
       var column = this._columns[col];
-      width = Math.max(width, column.minWidth || this._settings.minColumnWidth || 0);
-      width = Math.min(width, column.maxWidth || this._settings.maxColumnWidth || 100000);
+      width = this._correctColumnWidth(width, column);
       var old = column.width;
 
       if (old != width) {
@@ -40971,6 +42518,11 @@
 
       return false;
     },
+    _correctColumnWidth: function (width, config) {
+      width = Math.max(width, config.minWidth || this._settings.minColumnWidth || 0);
+      width = Math.min(width, config.maxWidth || this._settings.maxColumnWidth || 100000);
+      return width;
+    },
     _getRowHeight: function (row) {
       return (row.$height || this._settings.rowHeight) + (row.$subopen ? row.$subHeight : 0);
     },
@@ -40980,7 +42532,7 @@
       return this._getRowHeight(this.data.pull[id]);
     },
     _getHeightByIndexSumm: function (index1, index2) {
-      if (this._settings.fixedRowHeight) return (index2 - index1) * this._settings.rowHeight;else {
+      if (this._settings.fixedRowHeight) return Math.max(index2 - index1, 0) * this._settings.rowHeight;else {
         var summ = 0;
 
         for (; index1 < index2; index1++) {
@@ -40990,25 +42542,38 @@
         return summ;
       }
     },
-    _cellPosition: function (row, column) {
-      var top;
-
-      if (arguments.length == 1) {
+    _cellPosition: function (row, column, edit) {
+      if (row.row) {
         column = row.column;
         row = row.row;
       }
 
-      var item = this.getItem(row);
-      var config = this.getColumnConfig(column);
+      var width = this.getColumnConfig(column).width;
+
+      var height = this.getItem(row).$height || this._settings.rowHeight;
+
+      if (this.config.spans && edit) {
+        var span = this.getSpan(row, column);
+
+        if (span) {
+          var spanNode = this.getSpanNode({
+            row: span[0],
+            column: span[1]
+          });
+          width = spanNode.offsetWidth;
+          height = spanNode.offsetHeight;
+        }
+      }
+
       var left = 0;
       var parent = 0;
 
-      for (var index$$1 = 0; index$$1 < this._columns.length; index$$1++) {
-        if (index$$1 == this._settings.leftSplit || index$$1 == this._rightSplit) left = 0;
-        var leftcolumn = this._columns[index$$1];
+      for (var _index = 0; _index < this._columns.length; _index++) {
+        if (_index == this._settings.leftSplit || _index == this._rightSplit) left = 0;
+        var leftcolumn = this._columns[_index];
 
         if (leftcolumn.id == column) {
-          var split_column = index$$1 < this._settings.leftSplit ? 0 : index$$1 >= this._rightSplit ? 2 : 1;
+          var split_column = _index < this._settings.leftSplit ? 0 : _index >= this._rightSplit ? 2 : 1;
           parent = this._body.childNodes[split_column].firstChild;
           break;
         }
@@ -41016,13 +42581,18 @@
         left += leftcolumn.width;
       }
 
-      if (this.getIndexById(row) < this._settings.topSplit) top = this._getHeightByIndexSumm(0, this.getIndexById(row));else top = this._getHeightByIndexSumm((this._render_scroll_top || 0) - this._settings.topSplit, this.getIndexById(row)) + (this._render_scroll_shift || 0);
+      var index$$1 = this.getIndexById(row);
+      var top;
+      if (index$$1 < this._settings.topSplit) top = this._getHeightByIndexSumm(0, index$$1);else {
+        var first = this._render_scroll_top || 0;
+        top = this._getHeightByIndexSumm(first, index$$1) + (this._render_scroll_shift || 0) + (index$$1 >= first ? this._top_split_height || 0 : 0);
+      }
       return {
         parent: parent,
         top: top,
         left: left,
-        width: config.width,
-        height: item.$height || this._settings.rowHeight
+        width: width,
+        height: height
       };
     },
     _get_total_height: function () {
@@ -41133,14 +42703,11 @@
           start = this.data.$min;
           end = this.data.$max;
         }
-      } //in case of autoheight - request full rendering
+      }
 
+      var xind = start + this._settings.topSplit; //in case of autoheight - request full rendering
 
-      if (this._settings.autoheight) return [start, end, 0];
-      if (full) return [start, end, 0];
-      var xind = start;
-      var topSplit = this._settings.topSplit || 0;
-      if (topSplit) xind += topSplit;
+      if (full || this._settings.autoheight) return [xind, end, 0];
       var rowHeight = this._settings.fixedRowHeight ? this._settings.rowHeight : 0;
 
       if (rowHeight) {
@@ -41179,7 +42746,7 @@
 
       var state = this._get_y_range();
 
-      var freeze = this.config.topSplit;
+      var freeze = this._settings.topSplit;
       var freezeCss = "";
 
       if (rowindex >= freeze) {
@@ -41222,23 +42789,23 @@
           this._hideColumn(i, force);
         }
 
-        for (var _i6 = xr[1]; _i6 < this._rightSplit; _i6++) {
-          this._hideColumn(_i6, force);
+        for (var _i5 = xr[1]; _i5 < this._rightSplit; _i5++) {
+          this._hideColumn(_i5, force);
         }
       }
 
       this._render_full_rows = [];
 
-      for (var _i7 = 0; _i7 < this._settings.leftSplit; _i7++) {
-        this._renderColumn(_i7, yr, force);
+      for (var _i6 = 0; _i6 < this._settings.leftSplit; _i6++) {
+        this._renderColumn(_i6, yr, force);
       }
 
-      for (var _i8 = xr[0]; _i8 < xr[1]; _i8++) {
-        this._renderColumn(_i8, yr, force, _i8 == xr[0]);
+      for (var _i7 = xr[0]; _i7 < xr[1]; _i7++) {
+        this._renderColumn(_i7, yr, force, _i7 == xr[0]);
       }
 
-      for (var _i9 = this._rightSplit; _i9 < this._columns.length; _i9++) {
-        this._renderColumn(_i9, yr, force);
+      for (var _i8 = this._rightSplit; _i8 < this._columns.length; _i8++) {
+        this._renderColumn(_i8, yr, force);
       }
 
       this._check_and_render_full_rows(yr[0], yr[1], force);
@@ -41279,18 +42846,18 @@
 
       if (this._render_full_row_some) this._render_full_row_some = false;else return;
 
-      for (var _i10 = 0; _i10 < this._render_full_rows.length; _i10++) {
-        var info = this._render_full_rows[_i10];
+      for (var _i9 = 0; _i9 < this._render_full_rows.length; _i9++) {
+        var info = this._render_full_rows[_i9];
         var item = this.getItem(info.id);
         var value;
 
         if (typeof item.$row == "function") {
           value = item.$row.call(this, item, this.type);
         } else {
-          value = this._getValue(item, this.getColumnConfig(item.$row), _i10);
+          value = this._getValue(item, this.getColumnConfig(item.$row), _i9);
         }
 
-        var _row = this._rows_cache[_i10] = create("DIV", null, value);
+        var _row = this._rows_cache[_i9] = create("DIV", null, value);
 
         _row.className = "webix_cell " + (item.$sub ? "webix_dtable_sub" + (this._settings.subview ? "view" : "row") : "webix_dtable_colrow" + (item.$row ? " webix_topcell" + (this.data.getMark(item.id, "webix_selected") ? " webix_selected" : "") : ""));
 
@@ -41305,7 +42872,7 @@
         var height = item.$height || this._settings.rowHeight;
         if (item.$subopen) _row.style.height = item.$subHeight + "px";else _row.style.height = height + "px";
         _row.style.paddingRight = env.scrollSize + "px";
-        var topDelta = this._render_full_rows[_i10].index < this.config.topSplit ? -this._render_scroll_shift : 0;
+        var topDelta = this._render_full_rows[_i9].index < this.config.topSplit ? -this._render_scroll_shift : 0;
         _row.style.top = topDelta + info.top + (item.$subopen ? height - 1 : 0) + "px";
 
         if (!this._rows_body) {
@@ -41550,8 +43117,8 @@
 
       this._data_request_flag = null;
 
-      for (var _i11 = Math.max(yr[0], this._settings.topSplit); _i11 < yr[1]; _i11++) {
-        html += this._render_single_cell(_i11, config, yr, state, -1, index$$1);
+      for (var _i10 = Math.max(yr[0], this._settings.topSplit); _i10 < yr[1]; _i10++) {
+        html += this._render_single_cell(_i10, config, yr, state, -1, index$$1);
       } // preserve target node for Safari wheel event
 
 
@@ -41728,7 +43295,7 @@
     _restore_scroll_state: function () {
       if (this._x_scroll && !env.touch) {
         var state = this.getScrollState();
-        this._x_scroll._last_scroll_pos = this._y_scroll._last_scroll_pos = -1;
+        this._x_scroll.config.scrollPos = this._y_scroll.config.scrollPos = 0;
         this.scrollTo(state.x, state.y);
       }
     },
@@ -41748,40 +43315,82 @@
         this.render();
       }
     },
-    _on_header_click: function (column) {
+    _on_header_click: function (column, e) {
       var col = this.getColumnConfig(column);
-      if (!col.sort) return;
-      var order = "asc";
-      if (col.id == this._last_sorted) order = this._last_order == "asc" ? "desc" : "asc";
+      if (!this._settings.sort || !col.sort) return;
+      var dir = "asc";
 
-      this._sort(col.id, order, col.sort);
-    },
-    markSorting: function (column, order) {
-      if (!this._sort_sign) this._sort_sign = create("DIV");
-      var parent = this._sort_sign.parentNode;
-
-      if (parent) {
-        parent.removeAttribute("aria-sort");
-        parent.removeAttribute("tabindex");
+      if (this._last_sorted[col.id]) {
+        dir = this._last_sorted[col.id].dir == "asc" ? "desc" : "asc";
+      } else if (this._sort_signs[col.id]) {
+        dir = this._sort_signs[col.id].getAttribute("webix_sort_dir") == "asc" ? "desc" : "asc";
       }
 
-      remove(this._sort_sign);
+      this._sort(col.id, dir, col.sort, e.ctrlKey || e.metaKey);
+    },
+    markSorting: function (column, direction, preserve) {
+      direction = direction || "asc";
 
-      if (order) {
-        var cell = this._get_header_cell(this.getColumnIndex(column));
+      if (!preserve) {
+        this._sort_signs_order = [];
 
-        if (cell) {
-          this._sort_sign.className = "webix_ss_sort_" + order;
-          cell.style.position = "relative";
-          cell.appendChild(this._sort_sign);
-          cell.setAttribute("aria-sort", order + "ending");
-          cell.setAttribute("tabindex", "0");
+        for (var i in this._sort_signs) {
+          if (i !== column) {
+            var parent = this._sort_signs[i].parentNode;
+
+            if (parent) {
+              parent.removeAttribute("aria-sort");
+              parent.removeAttribute("tabindex");
+            }
+
+            remove(this._sort_signs[i]);
+            delete this._sort_signs[i];
+          } else {
+            this._sort_signs_order.push(i);
+
+            this._sort_signs[i].firstChild.innerHTML = "1";
+          }
         }
+      }
 
-        this._last_sorted = column;
-        this._last_order = order;
+      if (!column) return;
+
+      if (this._sort_signs[column]) {
+        this._sort_signs[column].className = "webix_ss_sort_".concat(direction);
       } else {
-        this._last_sorted = this._last_order = null;
+        var sign = create("div", {
+          webix_sort_dir: direction,
+          class: "webix_ss_sort_".concat(direction)
+        }, "<div class=\"webix_ss_sort_num\">".concat(this._sort_signs_order.length + 1, "</div>"));
+
+        this._render_single_mark(column, sign, direction);
+
+        this._sort_signs[column] = sign;
+
+        this._sort_signs_order.push(column);
+      }
+
+      var first = this._sort_signs[this._sort_signs_order[0]];
+
+      switch (this._sort_signs_order.length) {
+        case 1:
+          addCss(first, "webix_ss_sort_single");
+          break;
+
+        case 2:
+          removeCss(first, "webix_ss_sort_single");
+      }
+    },
+    _render_single_mark: function (column, sign, direction) {
+      direction = direction || sign.getAttribute("webix_sort_dir");
+
+      var cell = this._get_header_cell(this.getColumnIndex(column));
+
+      if (cell) {
+        if (cell.style.position != "absolute") cell.style.position = "relative";
+        cell.appendChild(sign);
+        cell.setAttribute("aria-sort", direction + "ending");
+        cell.setAttribute("tabindex", "0");
       }
     },
     scroll_setter: function (mode) {
@@ -41792,49 +43401,80 @@
       } else return this._settings.scrollX = this._settings.scrollY = mode;
     },
     _get_header_cell: function (column) {
-      var cells = this._header.getElementsByTagName("TD");
+      var attr =
+      /*@attr*/
+      "column";
+
+      var cells = this._header.querySelectorAll("div[".concat(attr, "=\"").concat(column, "\"]"));
 
       var maybe = null;
 
       for (var i = 0; i < cells.length; i++) {
-        if (cells[i].getAttribute(
+        var activeId = cells[i].getAttribute(
         /*@attr*/
-        "column") == column && !cells[i].getAttribute(
-        /*@attr*/
-        "active_id")) {
-          maybe = cells[i].firstChild;
-          if ((cells[i].colSpan || 0) < 2) return maybe;
-        }
+        "active_id");
+        if (activeId && !datafilter[this._active_headers[activeId].content].$icon) return null;
+        if (!cells[i].innerHTML) continue;
+        maybe = cells[i];
+        if ((cells[i].colSpan || 0) < 2) return maybe;
       }
 
       return maybe;
     },
-    _sort: function (col_id, direction, type$$1) {
+    _last_order: [],
+    _last_sorted: {},
+    _sort: function (col_id, direction, type$$1, preserve) {
       var _this2 = this;
 
+      preserve = this._settings.sort === "multi" && preserve;
       direction = direction || "asc";
-      this.markSorting(col_id, direction);
+
+      if (!preserve) {
+        this._last_order = [];
+        this._last_sorted = {};
+      }
+
+      var col = this.getColumnConfig(col_id);
+      var config = typeof col.sort == "function" ? {
+        as: col.sort,
+        dir: direction
+      } : {
+        by: col.id,
+        dir: direction,
+        as: col.sort
+      };
+      if (!this._last_sorted[col.id]) this._last_order.push(col.id);
+      this._last_sorted[col.id] = config;
 
       if (type$$1 == "server") {
-        this.callEvent("onBeforeSort", [col_id, direction, type$$1]);
+        var parameters = [col.id, direction, type$$1];
+        if (this._last_order.length > 1) parameters = [this._last_order.map(function (id) {
+          return _this2._last_sorted[id];
+        })];
+        this.callEvent("onBeforeSort", parameters);
         this.loadNext(0, 0, 0, 0, 1).then(function (data) {
           _this2.clearAll(true);
 
           _this2.parse(data);
 
-          _this2.callEvent("onAfterSort", [col_id, direction, type$$1]);
+          _this2.callEvent("onAfterSort", parameters);
         });
       } else {
         if (type$$1 == "text") {
+          var new_id = "$text_" + col.id;
           this.data.each(function (obj) {
-            obj.$text = this.getText(obj.id, col_id);
+            obj[new_id] = this.getText(obj.id, col.id);
           }, this);
-          type$$1 = "string";
-          col_id = "$text";
+          config.as = "string";
+          config.by = new_id;
         }
 
-        if (typeof type$$1 == "function") this.data.sort(type$$1, direction);else this.data.sort(col_id, direction, type$$1 || "string");
+        if (this._last_order.length > 1) this.data.sort(this._last_order.map(function (id) {
+          return _this2._last_sorted[id];
+        }));else this.data.sort(config);
       }
+
+      this.markSorting(col.id, config.dir, preserve);
     },
     _mouseEventCall: function (css_call, e, id, trg) {
       var functor, i, res;
@@ -41850,7 +43490,7 @@
     //because we using non-standard rendering model, custom logic for mouse detection need to be used
     _mouseEvent: function (e, hash, name, pair) {
       e = e || event;
-      var trg = e.target || e.srcElement;
+      var trg = e.target;
       if (this._settings.subview && this != $$(trg)) return; //define some vars, which will be used below
 
       var css = "",
@@ -41879,7 +43519,8 @@
 
           if (column) {
             //we need to ignore TD - which is header|footer
-            var isBody = trg.parentNode.tagName == "DIV"; //column already hidden or removed
+            var isBody = this._body.contains(trg); //column already hidden or removed
+
 
             if (!this._columns[column]) return;
             found = true;
@@ -41897,7 +43538,11 @@
                 /*@attr*/
                 "column")) return;
                 index$$1 = index(trg);
-                if (index$$1 >= this._settings.topSplit && !this._settings.prerender) index$$1 += this._columns[column]._yr0 - this._settings.topSplit;
+
+                if (index$$1 >= this._settings.topSplit) {
+                  var pager = this._settings.pager;
+                  if (pager || !this._settings.prerender && !this._settings.autoheight) index$$1 += this._columns[column]._yr0 - this._settings.topSplit;
+                }
               }
 
               this._item_clicked = id = {
@@ -41918,10 +43563,9 @@
                 this.callEvent("on" + pair, [id, e, trg]);
               }
             } else if (name == "ItemClick") {
-              var isHeader = trg.parentNode.parentNode.getAttribute(
-              /*@attr*/
-              "section") == "header";
-              if (isHeader && this.callEvent("onHeaderClick", [id, e, trg])) this._on_header_click(id.column);
+              var isHeader = this._header.contains(trg);
+
+              if (isHeader && this.callEvent("onHeaderClick", [id, e, trg])) this._on_header_click(id.column, e);
             }
 
             css_call = [];
@@ -41942,18 +43586,21 @@
       var data;
 
       if (id.header) {
-        var node = e.target || e.srcElement;
+        var node = e.target;
+        var section = node;
         var pos$$1;
         var cind = id.cind - (id.span ? id.span - 1 : 0);
         var rind = -1;
 
-        while (node && !pos$$1) {
-          node = node.parentNode;
-          pos$$1 = node.getAttribute("section");
+        while (section && !pos$$1) {
+          section = section.parentNode;
+          pos$$1 = section.getAttribute("section");
         }
 
-        while ((node = node.previousSibling) !== null) {
-          rind++;
+        while (node && rind < 0) {
+          var row = node.getAttribute("row");
+          if (row) rind = row;
+          node = node.parentNode;
         }
 
         var config = this._columns[cind][pos$$1][rind];
@@ -41968,7 +43615,7 @@
         if (_config.tooltip === true || !_config.tooltip && isUndefined(this._settings.tooltip.template)) {
           data = this.getText(id.row, id.column).toString();
         } else if (_config.tooltip) {
-          var area = (e.target || e.srcElement).getAttribute("webix_area");
+          var area = e.target.getAttribute("webix_area");
 
           if (area) {
             tooltip.type.template = function (obj, common) {
@@ -42071,13 +43718,13 @@
   // #include ui/datatable/datatable_print.js
   // #include ui/datatable/datatable_export.js
 
-  var view$1f = exports.protoUI(api$1f, temp$3, DataState, TablePaste, DataMove, EditAbility, KeysNavigation, PagingAbility, CustomPrint, Mixin$c, ValidateCollection, Mixin$b, Mixin$d, DragItem, Mixin$a, Mixin$9, Mixin$8, Mixin$7, Mixin$6, temp$4, Mixin$5, Mixin$4, Mixin$3, temp$5, Mixin$2, Mixin$1, Mixin, temp$6, temp$7, AutoTooltip, Group, DataMarks, DataLoader, MouseEvents, MapCollection, base$1.view, EventSystem, Settings);
+  var view$1h = exports.protoUI(api$1h, temp$3, DataState, TablePaste, DataMove, EditAbility, KeysNavigation, PagingAbility, CustomPrint, Mixin$c, ValidateCollection, Mixin$b, Mixin$d, DragItem, Mixin$a, Mixin$9, Mixin$8, Mixin$7, Mixin$6, temp$4, Mixin$5, Mixin$4, Mixin$3, temp$5, Mixin$2, Mixin$1, Mixin, temp$6, temp$7, AutoTooltip, Group, DataMarks, DataLoader, MouseEvents, MapCollection, base$1.view, EventSystem, Settings);
   var datatable = {
-    api: api$1f,
-    view: view$1f
+    api: api$1h,
+    view: view$1h
   };
 
-  var api$1g = {
+  var api$1i = {
     name: "treetable",
     $init: function () {
       exports.extend(this.data, TreeStore, true);
@@ -42136,7 +43783,14 @@
       return datatable.api._run_load_next.call(this, conf, direction);
     }
   };
-  var view$1g = exports.protoUI(api$1g, TreeAPI, TreeStateCheckbox, TreeDataLoader, datatable.view);
+  var view$1i = exports.protoUI(api$1i, TreeAPI, TreeStateCheckbox, TreeDataLoader, datatable.view);
+
+  exports.protoUI({
+    name: "filter",
+    defaults: {
+      template: "GPL version doesn't support filter <br> You need Webix PRO"
+    }
+  }, template$1.view);
 
   /* eslint no-constant-condition: 0 */
 
@@ -42564,6 +44218,7 @@
   exports.animate = animate;
   exports.print = print;
   exports.rules = rules;
+  exports.filters = filters;
   exports.patterns = patterns;
   exports.fullscreen = fullscreen;
   exports.version = version$1;
@@ -42605,6 +44260,7 @@
   exports.alert = alert;
   exports.confirm = confirm;
   exports.modalbox = modalbox;
+  exports.prompt = prompt;
   exports.message = message;
   exports.editStop = editStop;
   exports.ajax = ajax;
